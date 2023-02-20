@@ -19,7 +19,13 @@ module.exports = {
         hot: true,
         devMiddleware: {
             publicPath: "/",
-        }
+        },
+        /*http2: true,
+        https: {
+            key: fs.readFileSync("certs/localhost-key.pem"),
+            cert: fs.readFileSync("certs/localhost.crt"),
+            ca: fs.readFileSync("certs/localhost-ca.pem"),
+        },*/
     },
     module: {
         rules: [

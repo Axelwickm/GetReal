@@ -107,10 +107,3 @@ dist
 *.d.ts
 *.map
 
-# Ignore all .js files in src
-src/**/*.js
-src/**/*.js.map
-
-certs/*
-!certs/.gitkeep
-
