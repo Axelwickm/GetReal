@@ -38,8 +38,6 @@ export class XSensXRRig extends HardwareRig {
         this.hipRotation.y = playerState.hipRotation.y;
         this.hipRotation.z = playerState.hipRotation.z;
         
-        //console.log("networkUpdate", this.hipPosition, this.hipRotation);
-        
         // TODO: integrate between local hardware and network
         // TODO: send headset updates to network?
     }

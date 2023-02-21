@@ -278,33 +278,47 @@ export class XSensReader {
             //);
 
             // x, y, z vector3
-            // TODO: maybe convert to more standard format (see plugin)
-            this.bonePositions[i][0] = this.convert32BitFloat(
-                msg.subarray(cursor + 4, cursor + 8)
-            );
+            {
+                const x = this.convert32BitFloat(
+                    msg.subarray(cursor + 4, cursor + 8)
+                );
 
-            this.bonePositions[i][1] = this.convert32BitFloat(
-                msg.subarray(cursor + 8, cursor + 12)
-            );
+                const y = this.convert32BitFloat(
+                    msg.subarray(cursor + 8, cursor + 12)
+                );
 
-            this.bonePositions[i][2] = this.convert32BitFloat(
-                msg.subarray(cursor + 12, cursor + 16)
-            );
+                const z = this.convert32BitFloat(
+                    msg.subarray(cursor + 12, cursor + 16)
+                );
+
+                // Convert away from MVN's weird coordinate system
+                this.bonePositions[i][0] = -y;
+                this.bonePositions[i][1] = z;
+                this.bonePositions[i][2] = x;
+
+            }
+
 
             // w, x, y, z quaternion
-            // TODO: maybe convert to more standard format (see plugin)
-            this.boneRotations[i][0] = this.convert32BitFloat(
-                msg.subarray(cursor + 16, cursor + 20)
-            );
-            this.boneRotations[i][1] = this.convert32BitFloat(
-                msg.subarray(cursor + 20, cursor + 24)
-            );
-            this.boneRotations[i][2] = this.convert32BitFloat(
-                msg.subarray(cursor + 24, cursor + 28)
-            );
-            this.boneRotations[i][3] = this.convert32BitFloat(
-                msg.subarray(cursor + 28, cursor + 32)
-            );
+            {
+                const w = this.convert32BitFloat(
+                    msg.subarray(cursor + 16, cursor + 20)
+                );
+                const x = this.convert32BitFloat(
+                    msg.subarray(cursor + 20, cursor + 24)
+                );
+                const y = this.convert32BitFloat(
+                    msg.subarray(cursor + 24, cursor + 28)
+                );
+                const z = this.convert32BitFloat(
+                    msg.subarray(cursor + 28, cursor + 32)
+                );
+
+                this.boneRotations[i][0] = y;
+                this.boneRotations[i][1] = -z;
+                this.boneRotations[i][2] = -x;
+                this.boneRotations[i][3] = w;
+            }
 
             cursor += 32;
         }

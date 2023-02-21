@@ -15,7 +15,7 @@ export class Player {
         this.avatar = avatar;
 
         // Add listeners for player state changes
-        playerState.onChange = () => {
+        playerState.onChange = (change) => {
             rig.networkUpdate(playerState);
         }
     }

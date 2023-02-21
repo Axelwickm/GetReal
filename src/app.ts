@@ -10,8 +10,8 @@ import {
     ArcRotateCamera,
     Vector3,
     HemisphericLight,
-    Mesh,
     MeshBuilder,
+    StandardMaterial,
 } from "@babylonjs/core";
 
 import * as Colyseus from "colyseus.js";
@@ -35,11 +35,41 @@ class App {
         // initialize babylon scene and engine
         var engine = new Engine(canvas, true);
         var scene = new Scene(engine);
-        var ground = MeshBuilder.CreateGround(
-            "ground",
-            { width: 6, height: 6 },
+
+        // Define "red" material
+        const redMaterial = new StandardMaterial("red", scene);
+        redMaterial.diffuseColor.set(1, 0, 0);
+        scene.materials.push(redMaterial);
+
+        
+        // TODO: move this stuff below to Game
+        var camera: ArcRotateCamera = new ArcRotateCamera(
+            "Camera",
+            Math.PI / 2,
+            Math.PI / 2,
+            2,
+            Vector3.Zero(),
             scene
         );
+        camera.attachControl(canvas, true);
+        // Make control less sensitive
+        camera.lowerRadiusLimit = 1;
+        camera.upperRadiusLimit = 10;
+        camera.wheelPrecision = 50;
+
+
+        var light1: HemisphericLight = new HemisphericLight(
+            "light1",
+            new Vector3(1, 1, 0),
+            scene
+        );
+
+        var ground = MeshBuilder.CreateGround(
+            "ground",
+            { width: 10, height: 10 },
+            scene
+        );
+
         scene.createDefaultXRExperienceAsync({
             floorMeshes: [ground],
         });
@@ -62,31 +92,11 @@ class App {
                 throw e;
             });
 
-        // TODO: move this stuff below to Game
-        var camera: ArcRotateCamera = new ArcRotateCamera(
-            "Camera",
-            Math.PI / 2,
-            Math.PI / 2,
-            2,
-            Vector3.Zero(),
-            scene
-        );
-        camera.attachControl(canvas, true);
-
-        var light1: HemisphericLight = new HemisphericLight(
-            "light1",
-            new Vector3(1, 1, 0),
-            scene
-        );
-
-        // Add sphere
-        var sphere = MeshBuilder.CreateSphere("ssphere", { diameter: 1 }, scene);
-
 
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {
             // Shift+Ctrl+Alt+I
-            if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.key === "i") {
+            if (ev.ctrlKey && ev.key === "i") {
                 if (scene.debugLayer.isVisible()) {
                     scene.debugLayer.hide();
                 } else {
