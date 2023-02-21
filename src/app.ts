@@ -1,4 +1,5 @@
 import { Game } from "./Game";
+import { AssetManager } from "./AssetManager";
 import { GetRealSchema } from "./schema/GetRealSchema";
 
 import "@babylonjs/core/Debug/debugLayer";
@@ -40,6 +41,11 @@ class App {
         const redMaterial = new StandardMaterial("red", scene);
         redMaterial.diffuseColor.set(1, 0, 0);
         scene.materials.push(redMaterial);
+
+        // Define "black" material
+        const blackMaterial = new StandardMaterial("black", scene);
+        blackMaterial.diffuseColor.set(0, 0, 0);
+        scene.materials.push(blackMaterial);
 
         
         // TODO: move this stuff below to Game
@@ -92,17 +98,29 @@ class App {
                 throw e;
             });
 
+        // Load assets
+        AssetManager.getInstance().loadAssets(scene).then(() => {
+
+        });
 
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {
-            // Shift+Ctrl+Alt+I
+            // Ctrl+I = Inspector
             if (ev.ctrlKey && ev.key === "i") {
                 if (scene.debugLayer.isVisible()) {
                     scene.debugLayer.hide();
                 } else {
                     scene.debugLayer.show();
                 }
+                ev.preventDefault();
             }
+            // Debug mode 
+            if (ev.ctrlKey && ev.key === "d") {
+                game.setDebugMode(!game.getDebugMode());
+                ev.preventDefault();
+            }
+                
+
         });
 
         // run the main render loop

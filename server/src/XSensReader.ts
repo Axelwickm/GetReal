@@ -56,7 +56,6 @@ export class XSensReader {
     port: number = 9763;
     socket?: dgram.Socket;
 
-    // This can be slimmed down, since we really only care about the hip position
     bonePositions: Array<Vector3> = [];
     boneRotations: Array<Quaternion> = [];
     timestamp: number | undefined = undefined;

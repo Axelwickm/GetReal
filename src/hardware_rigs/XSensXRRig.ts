@@ -7,6 +7,8 @@ export class XSensXRRig extends HardwareRig {
     hipPosition: Vector3;
     hipRotation: Quaternion;
 
+    boneTransforms: Array<[Vector3, Quaternion]> = [];
+
     constructor() {
         super();
         this.hipPosition = new Vector3(0, 0, 0);
@@ -28,6 +30,10 @@ export class XSensXRRig extends HardwareRig {
         };
     }
 
+    getBoneTransforms(): Array<[Vector3, Quaternion]> {
+        return this.boneTransforms;
+    }
+
     networkUpdate(playerState: PlayerSchema) {
         this.hipPosition.x = playerState.hipPosition.x;
         this.hipPosition.y = playerState.hipPosition.y;
@@ -37,6 +43,20 @@ export class XSensXRRig extends HardwareRig {
         this.hipRotation.x = playerState.hipRotation.x;
         this.hipRotation.y = playerState.hipRotation.y;
         this.hipRotation.z = playerState.hipRotation.z;
+
+        // Zip playerState.bonePositions and playerState.boneRotations
+        this.boneTransforms = playerState.bonePositions.map((position, index) => {
+            return [
+                new Vector3(position.x, position.y, position.z),
+                new Quaternion(
+                    playerState.boneRotations[index].x,
+                    playerState.boneRotations[index].y,
+                    playerState.boneRotations[index].z,
+                    playerState.boneRotations[index].w, // This order is sooo dangerous
+                )
+            ];
+        });
+
         
         // TODO: integrate between local hardware and network
         // TODO: send headset updates to network?

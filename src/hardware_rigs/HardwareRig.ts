@@ -28,7 +28,7 @@ export abstract class HardwareRig {
         throw new Error("Abstract method not implemented");
     }
 
-    getBoneRotations(): Array<Quaternion> {
+    getBoneTransforms(): Array<[Vector3, Quaternion]> {
         throw new Error("Abstract method not implemented");
     }
 }

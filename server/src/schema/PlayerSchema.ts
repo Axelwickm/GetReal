@@ -24,6 +24,7 @@ export class PlayerSchema extends Schema {
     @type(QuaternionSchema) hipRotation = new QuaternionSchema();
 
     // Relative to the hip rotation
+    @type([Vector3Schema]) bonePositions = new ArraySchema<Vector3Schema>();
     @type([QuaternionSchema]) boneRotations = new ArraySchema<QuaternionSchema>();
 
 }

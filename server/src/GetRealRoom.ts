@@ -36,10 +36,33 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 // TODO: how should camera position be handled?
                 // It should probably just be set by the client from the XR.
 
-                
                 // Update player
-                player.hipPosition = new Vector3Schema(data.bonePositions[0][0], data.bonePositions[0][1], data.bonePositions[0][2]);
-                player.hipRotation = new QuaternionSchema(data.boneRotations[0][0], data.boneRotations[0][1], data.boneRotations[0][2], data.boneRotations[0][3]);
+                player.hipPosition = new Vector3Schema(
+                    data.bonePositions[0][0],
+                    data.bonePositions[0][1],
+                    data.bonePositions[0][2]
+                );
+                player.hipRotation = new QuaternionSchema(
+                    data.boneRotations[0][0],
+                    data.boneRotations[0][1],
+                    data.boneRotations[0][2],
+                    data.boneRotations[0][3]
+                );
+
+                if (player.bonePositions.length !== data.bonePositions.length) {
+                    player.bonePositions = new ArraySchema();
+                    for (let i = 0; i < data.bonePositions.length; i++) {
+                        player.bonePositions.push(new Vector3Schema());
+                    }
+                }
+
+                for (let i = 0; i < data.bonePositions.length; i++) {
+                    player.bonePositions[i] = new Vector3Schema(
+                        data.bonePositions[i][0],
+                        data.bonePositions[i][1],
+                        data.bonePositions[i][2]
+                    );
+                }
 
                 if (player.boneRotations.length !== data.boneRotations.length) {
                     player.boneRotations = new ArraySchema();
@@ -49,11 +72,15 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 }
 
                 for (let i = 0; i < data.boneRotations.length; i++) {
-                    player.boneRotations[i] = new QuaternionSchema(data.boneRotations[i][0], data.boneRotations[i][1], data.boneRotations[i][2], data.boneRotations[i][3]);
+                    player.boneRotations[i] = new QuaternionSchema(
+                        data.boneRotations[i][0],
+                        data.boneRotations[i][1],
+                        data.boneRotations[i][2],
+                        data.boneRotations[i][3]
+                    );
                 }
 
                 this.state.players.set(sessionId, player);
-
             }
         });
     }
@@ -66,7 +93,7 @@ export class GetRealRoom extends Room<GetRealSchema> {
         console.log(client.sessionId, "joined!");
 
         const player = new PlayerSchema();
-        
+
         // TODO temporary. If first player, set preformerId to 0
         if (this.state.players.size === 0) {
             player.performerId = 0;

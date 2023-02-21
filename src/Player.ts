@@ -7,12 +7,15 @@ import { Avatar } from './avatars/Avatar';
 export class Player {
     rig: HardwareRig;
     avatar: Avatar | null;
+    debugAvatar: Avatar | null;
 
     constructor(playerState: PlayerSchema,
                 rig: HardwareRig,
-                avatar: Avatar | null) {
+                avatar: Avatar | null,
+                debugAvatar: Avatar | null) {
         this.rig = rig;
         this.avatar = avatar;
+        this.debugAvatar = debugAvatar;
 
         // Add listeners for player state changes
         playerState.onChange = (change) => {
@@ -21,9 +24,8 @@ export class Player {
     }
 
     update() {
-        if (this.avatar) {
-            this.avatar.update();
-        }
+        this.avatar?.update();
+        this.debugAvatar?.update();
     }
 }
 
