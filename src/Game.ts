@@ -5,12 +5,10 @@ import { PlayerSchema } from "./schema/PlayerSchema";
 
 import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
 import { NetworkRig } from "./hardware_rigs/NetworkRig";
-import { DebugAvatar } from './avatars/DebugAvatar';
+import { DebugAvatar } from "./avatars/DebugAvatar";
 
 import { Room } from "colyseus.js";
-import {
-    Scene,
-} from "@babylonjs/core";
+import { Scene } from "@babylonjs/core";
 
 export class Game {
     private scene: Scene;

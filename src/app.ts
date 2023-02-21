@@ -72,11 +72,16 @@ class App {
             scene
         );
         camera.attachControl(canvas, true);
+
         var light1: HemisphericLight = new HemisphericLight(
             "light1",
             new Vector3(1, 1, 0),
             scene
         );
+
+        // Add sphere
+        var sphere = MeshBuilder.CreateSphere("ssphere", { diameter: 1 }, scene);
+
 
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {

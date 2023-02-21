@@ -36,10 +36,10 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 player.hipPosition = new Vector3Schema(
                     data.bonePositions[0]
                 );
+
                 player.hipRotation = new QuaternionSchema(
                     data.boneRotations[0],
                 );
-                console.log("hipPosition", player.hipPosition);
 
                 if (player.boneRotations.length !== data.boneRotations.length) {
                     player.boneRotations = new ArraySchema();

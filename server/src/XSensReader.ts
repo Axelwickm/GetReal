@@ -62,31 +62,31 @@ export class XSensReader {
     timestamp: number | undefined = undefined;
 
     /*
-     * Pelvis 0
-     * L5 1
-     * L3 2
-     * T12 3
-     * T8 4
-     * Neck 5
-     * Head 6
-     * Right Shoulder 7
-     * Right Upper Arm 8
-     * Right Forearm 9
-     * Right Hand 10
-     * Left Shoulder 11
-     * Left Upper Arm 12
-     * Left Forearm 13
-     * Left Hand 14
-     * Right Upper Leg 15
-     * Right Lower Leg 16
-     * Right Foot 17
-     * Right Toe 18
-     * Left Upper Leg 19
-     * Left Lower Leg 20
-     * Left Foot 21
-     * Left Toe 22
-     *
-     * */
+     *  0: Pelvis
+     *  1: L5
+     *  2: L3
+     *  3: T12
+     *  4: T8
+     *  5: Neck
+     *  6: Head
+     *  7: Right Shoulder
+     *  8: Right Upper Arm
+     *  9: Right Forearm
+     *  10: Right Hand
+     *  11: Left Shoulder
+     *  12: Left Upper Arm
+     *  13: Left Forearm
+     *  14: Left Hand
+     *  15: Right Upper Leg
+     *  16: Right Lower Leg
+     *  17: Right Foot
+     *  18: Right Toe
+     *  19: Left Upper Leg
+     *  20: Left Lower Leg
+     *  21: Left Foot
+     *  22: Left Toe
+     * 
+     */
 
     constructor(port?: number) {
         this.port = port || this.port;
@@ -116,8 +116,21 @@ export class XSensReader {
             );
         });
 
+        let gotConnection = false;
+
         this.socket.on("message", (msg, rinfo) => {
+            if (!gotConnection) {
+                console.log(
+                    `[XSensReader] Got connection from ${rinfo.address}:${rinfo.port}`
+                );
+                gotConnection = true;
+            }
             this.handleMessage(msg);
+        });
+
+        this.socket.on("close", () => {
+            console.log(`[XSensReader] Socket closed`);
+            gotConnection = false;
         });
 
         this.socket.on("error", (err) => {
