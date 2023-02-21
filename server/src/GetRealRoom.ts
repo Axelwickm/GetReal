@@ -1,12 +1,27 @@
 import { Room, Client } from "colyseus";
 
 import { GetRealState, PlayerState } from "./schema/GetRealState";
+import { XSensReader } from "./XSensReader";
 
+
+let xSensReaderInstance: XSensReader | null = null;
+export function setXSensReaderInstance(instance: XSensReader) {
+    xSensReaderInstance = instance;
+}
 
 export class GetRealRoom extends Room<GetRealState> {
     // When room is initialized
     onCreate(options: any) {
+        console.log("GetRealRoom created!", options);
         this.setState(new GetRealState());
+
+        // Set up XsensReader reader 
+        this.clock.setInterval(() => {
+            if (xSensReaderInstance?.hasData()) {
+                const data = xSensReaderInstance!.getLatestData();
+                this.state.xsensData = data;
+            }
+        }, 50);
     }
 
     // Authorize client based on provided options before WebSocket handshake is complete
