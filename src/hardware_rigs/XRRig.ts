@@ -9,4 +9,8 @@ export class XRRig extends HardwareRig {
     static getRigType(): string {
         return "xr";
     }
+
+    static isMe(): boolean {
+        return true;
+    }
 }

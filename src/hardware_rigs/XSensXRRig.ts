@@ -9,5 +9,9 @@ export class XSensXRRig extends HardwareRig {
     static getRigType(): string {
         return "xsens_xr";
     }
+
+    static isMe(): boolean {
+        return true;
+    }
 }
 
