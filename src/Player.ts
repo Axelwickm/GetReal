@@ -1,31 +1,30 @@
+import { PlayerSchema } from "./schema/PlayerSchema";
 
 import { HardwareRig } from './hardware_rigs/HardwareRig';
 import { Avatar } from './avatars/Avatar';
 
-import { Vector3, Quaternion } from '@babylonjs/core';
-
-
-type PlayerState = {
-    name: string;
-    position: Vector3;
-    rotation: Quaternion;
-}
-
 
 export class Player {
-    rig: HardwareRig | null;
+    rig: HardwareRig;
     avatar: Avatar | null;
 
-    constructor() {
-        this.rig = null;
-        this.avatar = null;
+    constructor(playerState: PlayerSchema,
+                rig: HardwareRig,
+                avatar: Avatar | null) {
+        this.rig = rig;
+        this.avatar = avatar;
+
+        // Add listeners for player state changes
+        playerState.onChange = () => {
+            rig.networkUpdate(playerState);
+        }
     }
 
-    isMe(): boolean {
-        // If rig is null, we will get the players state from the server
-        return this.rig != null;
+    update() {
+        if (this.avatar) {
+            this.avatar.update();
+        }
     }
-
 }
 
 

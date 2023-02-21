@@ -45,6 +45,13 @@ const MvnPropSegmentCount = 4;
  * Tested on MvnStudio version 2023
  *
  */
+
+export type XSensData = {
+    bonePositions: Array<Vector3>;
+    boneRotations: Array<Quaternion>;
+    timestamp: number | undefined;
+};
+
 export class XSensReader {
     port: number = 9763;
     socket?: dgram.Socket;
@@ -89,11 +96,7 @@ export class XSensReader {
         return this.bonePositions.length > 0;
     }
 
-    getLatestData(): {
-        bonePositions: Array<Vector3>;
-        boneRotations: Array<Quaternion>;
-        timestamp: number | undefined;
-    } {
+    getLatestData(): XSensData {
         return {
             bonePositions: this.bonePositions,
             boneRotations: this.boneRotations,
@@ -137,7 +140,6 @@ export class XSensReader {
             return;
         }
 
-        // Read bytes 4 and 5. TODO: verify that this nonsense is correct
         let result: string = "";
         result += String.fromCharCode(msg[4]);
         result += String.fromCharCode(msg[5]);
@@ -170,7 +172,7 @@ export class XSensReader {
                     this.timestamp = header["timestamp"];
                     const payloadData = msg.subarray(MvnHeaderSize, msg.length);
                     // Stored inplace, for ease and efficiency
-                    this.parsePayload(
+                    this.parseAndSetPayload(
                         payloadData,
                         header["numberOfBodySegments"]
                     );
@@ -184,9 +186,9 @@ export class XSensReader {
                 );
             }
         } else if (packId === MvnStreamingProtocol.SPMetaMoreMeta) {
-            // TODO: Meta data not currently supported, but we may want to support it in the future.
+            // Metadata not currently supported, but we may want to support it in the future?
         } else if (packId === MvnStreamingProtocol.SPMetaScaling) {
-            // Dont know what this is, but we dont care
+            // Use in future?
         } else {
             // We may want to be able to recover from this since the problem is caused inside of MVN Studio.
             // But for now, we just throw an error.
@@ -240,7 +242,7 @@ export class XSensReader {
         return t as MvnMessageType;
     }
 
-    parsePayload(msg: Buffer, segmentCount: number): number[] {
+    parseAndSetPayload(msg: Buffer, segmentCount: number): void {
         // Prepare arrays
         if (this.bonePositions.length !== segmentCount) {
             this.bonePositions = new Array<Vector3>(segmentCount);
@@ -252,13 +254,11 @@ export class XSensReader {
         if (this.boneRotations.length !== segmentCount) {
             this.boneRotations = new Array<Quaternion>(segmentCount);
             for (let i = 0; i < segmentCount; i++) {
-                this.boneRotations[i] = [1, 0, 0, 1];
+                this.boneRotations[i] = [0, 0, 0, 1];
             }
         }
 
-        const payloadData = new Array<number>(segmentCount * 8);
         let cursor = 0;
-
         for (let i = 0; i < segmentCount; i++) {
             //const segmentId = this.convert32BitInt(
             //    msg.subarray(cursor + 0, cursor + 4)
@@ -295,11 +295,9 @@ export class XSensReader {
 
             cursor += 32;
         }
-
-        return payloadData;
     }
 
-    convert32BitInt(buffer: Buffer): int {
+    convert32BitInt(buffer: Buffer): number {
         if (buffer.length !== 4) {
             throw new Error(
                 `[XSensReader] Invalid buffer length for convert32BitInt: ${buffer.length}`

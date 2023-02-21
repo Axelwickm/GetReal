@@ -1,8 +1,10 @@
 import { Room, Client } from "colyseus";
+import { ArraySchema } from "@colyseus/schema";
 
-import { GetRealSchema, PlayerState } from "./schema/GetRealSchema";
-import { XSensReader } from "./XSensReader";
-
+import { GetRealSchema } from "./schema/GetRealSchema";
+import { QuaternionSchema, Vector3Schema } from "./schema/MathSchema";
+import { PlayerSchema } from "./schema/PlayerSchema";
+import { XSensReader, XSensData } from "./XSensReader";
 
 let xSensReaderInstance: XSensReader | null = null;
 export function setXSensReaderInstance(instance: XSensReader) {
@@ -15,19 +17,48 @@ export class GetRealRoom extends Room<GetRealSchema> {
         console.log("GetRealRoom created!", options);
         this.setState(new GetRealSchema());
 
-        // Set up XsensReader reader 
+        // Set up XsensReader reader
         this.clock.setInterval(() => {
             if (xSensReaderInstance?.hasData()) {
                 const data = xSensReaderInstance!.getLatestData();
-                // Find players with performed ID that isn't -1 and set
-                // their position to the data from the XsensReader
-                this.state.players.forEach((player, sessionId) => {
-                    if (player.performerId !== -1) {
-
-                    }
-                });
+                this.setPerformerXSensData(undefined, data);
             }
         }, 50);
+    }
+
+    setPerformerXSensData(performerId: number | undefined, data: XSensData) {
+        // If performerId is undefined, set the data for all performers
+        this.state.players.forEach((player, sessionId) => {
+            if (
+                player.performerId === performerId ||
+                (performerId === undefined && player.performerId !== -1)
+            ) {
+                player.hipPosition = new Vector3Schema(
+                    data.bonePositions[0]
+                );
+                player.hipRotation = new QuaternionSchema(
+                    data.boneRotations[0],
+                );
+                console.log("hipPosition", player.hipPosition);
+
+                if (player.boneRotations.length !== data.boneRotations.length) {
+                    player.boneRotations = new ArraySchema();
+                    for (let i = 0; i < data.boneRotations.length; i++) {
+                        player.boneRotations.push(new QuaternionSchema());
+                    }
+                }
+
+                for (let i = 0; i < data.boneRotations.length; i++) {
+                    player.boneRotations[i] = new QuaternionSchema(data.boneRotations[i]);
+                }
+
+                // TODO: how should camera position be handled?
+                // It should probably just be set by the client from the XR.
+
+                // TODO: can we broadcast this to all clients? More efficient?
+                this.state.players.set(sessionId, player);
+            }
+        });
     }
 
     // Authorize client based on provided options before WebSocket handshake is complete
@@ -37,25 +68,15 @@ export class GetRealRoom extends Room<GetRealSchema> {
     onJoin(client: Client, options: any) {
         console.log(client.sessionId, "joined!");
 
-        const player = new PlayerState();
-
-        const FLOOR_SIZE = 500;
-        player.x = -(FLOOR_SIZE / 2) + (Math.random() * FLOOR_SIZE);
-        player.y = -1;
-        player.z = -(FLOOR_SIZE / 2) + (Math.random() * FLOOR_SIZE);
+        const player = new PlayerSchema();
+        
+        // TODO temporary. If first player, set preformerId to 0
+        if (this.state.players.size === 0) {
+            player.performerId = 0;
+        }
 
         this.state.players.set(client.sessionId, player);
-
-        // Move player randomly on each interval
-        this.clock.setInterval(() => {
-            player.x += Math.random() * 20 - 10;
-            player.z += Math.random() * 20 - 10;
-            console.log("player moved to", player.x, player.z);
-            this.state.players.set(client.sessionId, player);
-        }
-        , 50);
     }
-
 
     // When a client leaves the room
     onLeave(client: Client, consented: boolean) {
@@ -68,5 +89,5 @@ export class GetRealRoom extends Room<GetRealSchema> {
     }
 
     // Cleanup callback, called after there are no more clients in the room. (see `autoDispose`)
-    onDispose() { }
+    onDispose() {}
 }
