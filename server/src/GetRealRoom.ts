@@ -1,6 +1,6 @@
 import { Room, Client } from "colyseus";
 
-import { GetRealState, PlayerState } from "./schema/GetRealState";
+import { GetRealSchema, PlayerState } from "./schema/GetRealSchema";
 import { XSensReader } from "./XSensReader";
 
 
@@ -9,17 +9,23 @@ export function setXSensReaderInstance(instance: XSensReader) {
     xSensReaderInstance = instance;
 }
 
-export class GetRealRoom extends Room<GetRealState> {
+export class GetRealRoom extends Room<GetRealSchema> {
     // When room is initialized
     onCreate(options: any) {
         console.log("GetRealRoom created!", options);
-        this.setState(new GetRealState());
+        this.setState(new GetRealSchema());
 
         // Set up XsensReader reader 
         this.clock.setInterval(() => {
             if (xSensReaderInstance?.hasData()) {
                 const data = xSensReaderInstance!.getLatestData();
-                this.state.xsensData = data;
+                // Find players with performed ID that isn't -1 and set
+                // their position to the data from the XsensReader
+                this.state.players.forEach((player, sessionId) => {
+                    if (player.performerId !== -1) {
+
+                    }
+                });
             }
         }, 50);
     }
