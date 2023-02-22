@@ -84,7 +84,7 @@ export class XSensReader {
      *  20: Left Lower Leg
      *  21: Left Foot
      *  22: Left Toe
-     * 
+     *
      */
 
     constructor(port?: number) {
@@ -294,9 +294,7 @@ export class XSensReader {
                 this.bonePositions[i][0] = -y;
                 this.bonePositions[i][1] = z;
                 this.bonePositions[i][2] = x;
-
             }
-
 
             // w, x, y, z quaternion
             {
@@ -313,9 +311,16 @@ export class XSensReader {
                     msg.subarray(cursor + 28, cursor + 32)
                 );
 
-                this.boneRotations[i][0] = y;
+                // Unity Plugin does this, but seems to give incorrect results
+                // this.boneRotations[i][0] = y;
+                // this.boneRotations[i][1] = -z;
+                // this.boneRotations[i][2] = -x;
+                // this.boneRotations[i][3] = w;
+
+                // This is works though
+                this.boneRotations[i][0] = x;
                 this.boneRotations[i][1] = -z;
-                this.boneRotations[i][2] = -x;
+                this.boneRotations[i][2] = -y;
                 this.boneRotations[i][3] = w;
             }
 
@@ -354,6 +359,66 @@ export class XSensReader {
 
         return temp.readFloatLE(0);
     }
+
+    /*   Old code for finding right quaternion conversion. Kept for reference and becuse it's funny.
+        // Get epoch time as seconds
+        let epochTime = this.timestamp / 1000;
+        epochTime = Math.floor(epochTime/10);
+        const switches = [
+            ["x", "y", "z"],
+            ["x", "z", "y"],
+            ["y", "x", "z"],
+            ["y", "z", "x"],
+            ["z", "x", "y"],
+            ["z", "y", "x"]
+        ];
+        const factors = [
+            [1, 1, 1],
+            [1, 1, -1],
+            [1, -1, 1],
+            [1, -1, -1],
+            [-1, 1, 1],
+            [-1, 1, -1],
+            [-1, -1, 1],
+            [-1, -1, -1]
+        ];
+        const TOTAL_COMBINATIONS = switches.length * factors.length;
+        const combination = epochTime % TOTAL_COMBINATIONS;
+        // best are : 11, 27
+        const switchIndex = Math.floor(combination / factors.length);
+        const factorIndex = combination % factors.length;
+
+        const s = switches[switchIndex];
+        const f = factors[factorIndex];
+        let str = "";
+        for (let j = 0; j < 3; j++) {
+            if (s[j] === "x") {
+                this.boneRotations[i][j] = x * f[j];
+                if (f[j] === -1) {
+                    str += "-";
+                } else {
+                    str += "+";
+                }
+                str += "x";
+            } else if (s[j] === "y") {
+                this.boneRotations[i][j] = y * f[j];
+                if (f[j] === -1) {
+                    str += "-";
+                } else {
+                    str += "+";
+                }
+                str += "y";
+            } else if (s[j] === "z") {
+                this.boneRotations[i][j] = z * f[j];
+                if (f[j] === -1) {
+                    str += "-";
+                } else {
+                    str += "+";
+                }
+                str += "z";
+            }
+            str += " ";
+        }
+        console.log(combination, str);
+    */
 }
-
-
