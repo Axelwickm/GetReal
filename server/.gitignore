@@ -107,3 +107,7 @@ dist
 *.d.ts
 *.map
 
+
+# Certs
+./certs/*
+!./certs/.gitkeep

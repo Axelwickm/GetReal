@@ -17,6 +17,7 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "@colyseus/uwebsockets-transport": "^0.14.29",
     "colyseus": "^0.14.24"
   }
 }

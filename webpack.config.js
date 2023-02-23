@@ -17,15 +17,11 @@ module.exports = {
         port: 8080, //port that we're using for local host (localhost:8080)
         static: path.resolve(appDirectory, "public"), //tells webpack to serve from the public folder
         hot: true,
-        devMiddleware: {
-            publicPath: "/",
-        },
-        /*http2: true,
         https: {
-            key: fs.readFileSync("certs/localhost-key.pem"),
-            cert: fs.readFileSync("certs/localhost.crt"),
-            ca: fs.readFileSync("certs/localhost-ca.pem"),
-        },*/
+            key: fs.readFileSync('./certs/ssl.key'),
+            cert: fs.readFileSync('./certs/ssl.cert'),
+            //ca: fs.readFileSync('./cert/ssl.ca'),
+        }
     },
     module: {
         rules: [

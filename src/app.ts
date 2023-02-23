@@ -85,7 +85,7 @@ class App {
 
         // Join Colyseus client
         const host = window.location.hostname;
-        const client = new Colyseus.Client("ws://" + host + ":2567");
+        const client = new Colyseus.Client("wss://" + host + ":2567");
         client
             .joinOrCreate("get_real")
             .then((room: Colyseus.Room<unknown>) => {
