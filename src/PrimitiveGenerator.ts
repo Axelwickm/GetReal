@@ -11,7 +11,7 @@ export namespace MeshPrimitiveGenerator {
             diameterBottom: 0.5,
             tessellation: 4,
         }, scene);
-        
+
         // Wireframe only for now 
         const material = scene.getMaterialByName("wireframe");
         if (material) {

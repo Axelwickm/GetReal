@@ -2,7 +2,7 @@ import { Avatar } from "./Avatar";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
 
 import { Scene, Mesh, MeshBuilder } from "@babylonjs/core";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 import { MeshPrimitiveGenerator } from "../PrimitiveGenerator";
 
 export class DebugAvatar extends Avatar {
@@ -15,6 +15,7 @@ export class DebugAvatar extends Avatar {
         super(scene, rig);
 
         this.cameraCube = MeshPrimitiveGenerator.camera(scene);
+        this.cameraCube.setEnabled(!this.rig.isMe());
 
         this.hipCube = MeshBuilder.CreateBox("box", {}, scene);
         this.hipCube.scaling = new Vector3(0.2, 0.1, 0.1);
@@ -38,6 +39,10 @@ export class DebugAvatar extends Avatar {
 
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
+
+        if (!this.rig.isMe())
+            this.cameraCube.setEnabled(enabled);
+
         this.hipCube.setEnabled(enabled);
         for (let i = 0; i < this.boneCubes.length; i++) {
             this.boneCubes[i].setEnabled(enabled);
@@ -47,7 +52,9 @@ export class DebugAvatar extends Avatar {
     update() {
         const cameraTransform = this.rig.getCameraTransform();
         this.cameraCube.position = cameraTransform[0];
-        this.cameraCube.rotationQuaternion = cameraTransform[1];
+        this.cameraCube.rotationQuaternion = cameraTransform[1].multiply(
+            Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2)
+        ).multiply(Quaternion.RotationAxis(Vector3.Up(), Math.PI / 4));
 
         const boneTransforms = this.rig.getBoneTransforms();
         if (boneTransforms.length !== 0) {

@@ -1,5 +1,4 @@
 import { Scene, SceneLoader, Skeleton, AbstractMesh, TransformNode } from "@babylonjs/core";
-import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 
 /*
  * Singleton class for loading assets in order of priority, and then storing references to them

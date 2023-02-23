@@ -1,5 +1,4 @@
-//import { PlayerSchema, PlayerTransformUpdateMessageType, PlayerTransformUpdateMessage } from "../schema/PlayerSchema";
-import { PlayerSchema } from "../schema/PlayerSchema";
+import { PlayerSchema, PlayerTransformUpdateMessageType, PlayerTransformUpdateMessage } from "../schema/PlayerSchema";
 import { HardwareRig } from './HardwareRig';
 
 import { Room } from "colyseus.js";
@@ -26,13 +25,12 @@ export class XRRig extends HardwareRig {
         const camera = this.xr.baseExperience.camera;
         
         // Sync camera position to server
-        /*const message: PlayerTransformUpdateMessage = {
+        const message: PlayerTransformUpdateMessage = {
             sessionId: room.sessionId,
             cameraPosition: [camera.position.x, camera.position.y, camera.position.z],
             cameraRotation: [camera.rotationQuaternion.w, camera.rotationQuaternion.x, camera.rotationQuaternion.y, camera.rotationQuaternion.z],
         };
         room.send(PlayerTransformUpdateMessageType, message);
-        */
     }
 
     getCameraTransform(): [Vector3, Quaternion] {
