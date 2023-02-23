@@ -114,15 +114,15 @@ export class FullBodyAvatar extends Avatar {
             const relativeBoneTransforms =
                 this.targetRelativeBoneTransforms(globalBoneTransforms);
             // For each tranform node child of this.armature
-
             for (let i = 0; i < this.armatureBones.length; i++) {
                 const bone = this.armatureBones[i];
                 const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
                 if (boneInds) {
-                    //const t = relativeBoneTransforms[boneInds[0]];
                     const t = relativeBoneTransforms[boneInds[0]];
-                    bone.position = t[0];
-                    bone.rotationQuaternion = t[1];
+                    if (t) {
+                        bone.position = t[0];
+                        bone.rotationQuaternion = t[1];
+                    }
                 }
             }
         }
@@ -176,7 +176,7 @@ export class FullBodyAvatar extends Avatar {
 
             const gT = globalTransforms[boneIndex];
             if (gT === undefined)
-                throw new Error("Bone transform not found " + boneName);
+                continue;
 
             if (parentIndex === null) {
                 relativeBoneTransforms.push([
