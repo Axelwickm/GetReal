@@ -3,7 +3,7 @@ import { Vector3Schema, QuaternionSchema } from "./MathSchemas";
 import { ArraySchema, Schema, type, } from "@colyseus/schema";
 
 // Messages are only sent from client to server, although sometime the server invokes them internally.
-/*export const PlayerTransformUpdateMessageType = "playerTransformUpdate";
+export const PlayerTransformUpdateMessageType = "playerTransformUpdate";
 export type PlayerTransformUpdateMessage = {
     sessionId: string; // What player should update
     cameraPosition?: [number, number, number];
@@ -13,7 +13,7 @@ export type PlayerTransformUpdateMessage = {
     rightHandPosition?: [number, number, number];
     rightHandRotation?: [number, number, number, number];
     // Bones are only updated by server
-}*/
+}
 
 export class PlayerSchema extends Schema {
     @type("string") name: string = "unknown";
@@ -37,7 +37,7 @@ export class PlayerSchema extends Schema {
     @type([QuaternionSchema]) boneRotations = new ArraySchema<QuaternionSchema>();
 
 
-    /*updateFromTransformMessage(message: PlayerTransformUpdateMessage) {
+    updateFromTransformMessage(message: PlayerTransformUpdateMessage) {
         if (message.cameraPosition)
             this.cameraPosition = new Vector3Schema(message.cameraPosition[0], message.cameraPosition[1], message.cameraPosition[2]);
         if (message.cameraRotation)
@@ -52,5 +52,5 @@ export class PlayerSchema extends Schema {
             this.rightHandPosition = new Vector3Schema(message.rightHandPosition[0], message.rightHandPosition[1], message.rightHandPosition[2]);
         if (message.rightHandRotation)
             this.rightHandRotation = new QuaternionSchema(message.rightHandRotation[0], message.rightHandRotation[1], message.rightHandRotation[2], message.rightHandRotation[3]);
-    }*/
+    }
 }

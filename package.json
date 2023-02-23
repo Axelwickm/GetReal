@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prestart": "cp ./server/src/schema/*.ts ./src/schema",
     "build": "webpack",
     "start": "webpack-dev-server --port 8083"
   },

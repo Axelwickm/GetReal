@@ -114,3 +114,6 @@ src/**/*.js.map
 certs/*
 !certs/.gitkeep
 
+src/schema/*
+!src/schema/.gitkeep
+
