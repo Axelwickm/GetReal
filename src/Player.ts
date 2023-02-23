@@ -27,6 +27,16 @@ export class Player {
         this.avatar?.update();
         this.debugAvatar?.update();
     }
+
+    isMe(): boolean {
+        return this.rig.isMe();
+    }
+
+    calibrate() {
+        // TODO: this.rig.calibrate();
+        this.avatar?.calibrate();
+        this.debugAvatar?.calibrate();
+    }
 }
 
 

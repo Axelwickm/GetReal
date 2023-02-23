@@ -1,4 +1,5 @@
-import { Scene, SceneLoader, Skeleton, AbstractMesh } from "@babylonjs/core";
+import { Scene, SceneLoader, Skeleton, AbstractMesh, TransformNode } from "@babylonjs/core";
+import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 
 /*
  * Singleton class for loading assets in order of priority, and then storing references to them
@@ -24,7 +25,8 @@ const ASSETS: Array<AssetRef> = [
 
 export type CharacterAsset = {
     skeleton: Skeleton;
-    meshes: Array<AbstractMesh>;
+    armature: TransformNode; // For some reason, this is what we need to change
+    mesh: AbstractMesh;
 };
 
 export class AssetManager {
@@ -88,13 +90,29 @@ export class AssetManager {
                 scene
             )
                 .then((result) => {
-                    result.meshes.forEach((mesh) => {
-                        mesh.setEnabled(false);
-                    });
-
                     result.particleSystems.forEach((ps) => {
                         ps.stop();
                     });
+
+                    // Put in one parent mesh
+                    const parent = new AbstractMesh(assetRef.name, scene);
+                    result.meshes.forEach((mesh) => {
+                        mesh.parent = parent;
+                    });
+
+                    result.skeletons.forEach((skeleton) => {
+                        skeleton.name = assetRef.name;
+                    });
+
+                    // Find transform node of name Armature
+                    const armature = parent.getChildTransformNodes().find((node) => {
+                        return node.name === "Armature";
+                    });
+                    if (!armature) {
+                        throw new Error("No armature with name \"Armature\" found");
+                    }
+
+                    parent.setEnabled(false);
 
                     if (assetRef.type === "character") {
                         if (result.skeletons.length !== 1) {
@@ -106,7 +124,8 @@ export class AssetManager {
 
                         assetRef.defferedResolve!({
                             skeleton: result.skeletons[0],
-                            meshes: result.meshes,
+                            armature: armature,
+                            mesh: parent
                         });
                     } else {
                         throw new Error("Unknown asset type: " + assetRef.type);

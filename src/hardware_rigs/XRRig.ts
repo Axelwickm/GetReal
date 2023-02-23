@@ -10,7 +10,7 @@ export class XRRig extends HardwareRig {
         return "xr";
     }
 
-    static isMe(): boolean {
+    isMe(): boolean {
         return true;
     }
 }

@@ -11,7 +11,7 @@ export class KeyboardMouseRig extends HardwareRig {
         return "keyboard_mouse";
     }
 
-    static isMe(): boolean {
+    isMe(): boolean {
         return true;
     }
 }

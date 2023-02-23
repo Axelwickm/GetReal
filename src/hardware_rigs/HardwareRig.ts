@@ -8,7 +8,7 @@ export abstract class HardwareRig {
         throw new Error("Abstract method not implemented");
     }
 
-    static isMe(): boolean {
+    isMe(): boolean {
         throw new Error("Abstract method not implemented");
     }
 

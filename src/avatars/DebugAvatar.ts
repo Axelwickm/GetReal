@@ -18,7 +18,7 @@ export class DebugAvatar extends Avatar {
 
         for (let i = 0; i < 23; i++) {
             const boneCube = MeshBuilder.CreateBox("box", {}, scene);
-            boneCube.scaling = new Vector3(0.03, 0.03, 0.03);
+            boneCube.scaling = new Vector3(0.06, 0.03, 0.03);
             boneCube.material = this.scene.getMaterialByName("black")!;
             this.boneCubes.push(boneCube);
         }
@@ -56,6 +56,10 @@ export class DebugAvatar extends Avatar {
             this.boneCubes[i].position = boneTransforms[i][0];
             this.boneCubes[i].rotationQuaternion = boneTransforms[i][1];
         }
+    }
+
+    calibrate() {
 
     }
+
 }

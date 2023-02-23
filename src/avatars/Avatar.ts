@@ -5,11 +5,12 @@ import { Scene } from "@babylonjs/core";
 export class Avatar {
     scene: Scene;
     rig: HardwareRig;
-    enabled: boolean = true;
+    enabled: boolean;
 
     constructor(scene: Scene, rig: HardwareRig) {
         this.scene = scene;
         this.rig = rig;
+        this.enabled = true;
     }
 
 
@@ -27,5 +28,9 @@ export class Avatar {
 
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
+    }
+
+    calibrate() {
+        throw new Error("Abstract method not implemented");
     }
 }

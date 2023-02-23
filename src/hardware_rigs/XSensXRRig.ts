@@ -19,7 +19,7 @@ export class XSensXRRig extends HardwareRig {
         return "xsens_xr";
     }
 
-    static isMe(): boolean {
+    isMe(): boolean {
         return true;
     }
 

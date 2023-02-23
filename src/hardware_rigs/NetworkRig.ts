@@ -10,7 +10,7 @@ export class NetworkRig extends HardwareRig {
         return "network";
     }
 
-    static isMe(): boolean {
+    isMe(): boolean {
         return false;
     }
 }

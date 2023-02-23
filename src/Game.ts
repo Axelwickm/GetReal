@@ -48,7 +48,7 @@ export class Game {
 
             const character = AssetManager.getInstance().getCharacterOptions()[0];
             const fullBodyAvatar = new FullBodyAvatar(this.scene, rig, character);
-            fullBodyAvatar.setEnabled(false);
+            fullBodyAvatar.setEnabled(true);
 
             // add player
             this.players.set(sessionId, new Player(playerState, rig, fullBodyAvatar, debugAvatar));
@@ -61,6 +61,14 @@ export class Game {
             console.log("player removed!", playerState, sessionId);
             this.players.delete(sessionId);
         };
+    }
+
+    calibrate() {
+        this.players.forEach((player) => {
+            if (player.isMe()) {
+                player.calibrate();
+            }
+        });
     }
 
     update() : void {

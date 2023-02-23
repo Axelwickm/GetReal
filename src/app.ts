@@ -119,14 +119,41 @@ class App {
                 game.setDebugMode(!game.getDebugMode());
                 ev.preventDefault();
             }
-                
-
         });
 
+        // Find calibrate listener and have it call game.calibrate()
+        const calibrateButton = document.getElementById("calibrate");
+        if (calibrateButton) {
+            console.log("Found calibrate button");
+            calibrateButton.addEventListener("click", () => {
+                console.log("Calibrating");
+                game.calibrate();
+            });
+        }
+
+        let avgTotal = 0;
+        let lastTime = Date.now();
+        let lastUpdate = Date.now();
+        let fpsCounter = document.getElementById("fps");
+
         // run the main render loop
-        engine.runRenderLoop(() => {
+        engine.runRenderLoop(async () => {
+            let start = Date.now();
             game.update();
+            let gameUpdate = Date.now() - start;
             scene.render();
+            let render = Date.now() - start - gameUpdate;
+
+            avgTotal = avgTotal*0.98 + (Date.now() - lastTime)*0.02;
+            lastTime = Date.now();
+
+            // Update FPS counter
+            if (Date.now() - lastUpdate > 1000) {
+                let fps = Math.round(1000/avgTotal);
+                lastTime = Date.now();
+                lastUpdate = Date.now();
+                if (fpsCounter) fpsCounter.innerHTML = `FPS: ${fps} - u ${gameUpdate}ms - r ${render}ms`;
+            }
         });
     }
 }
