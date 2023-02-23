@@ -1,18 +1,14 @@
 import { HardwareRig } from './HardwareRig';
 import { PlayerSchema } from '../schema/PlayerSchema';
 
+import { Room } from 'colyseus.js';
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 
 export class XSensXRRig extends HardwareRig {
-    hipPosition: Vector3;
-    hipRotation: Quaternion;
-
     boneTransforms: Array<[Vector3, Quaternion]> = [];
 
     constructor() {
         super();
-        this.hipPosition = new Vector3(0, 0, 0);
-        this.hipRotation = new Quaternion(0, 0, 0, 1);
     }
 
     static getRigType(): string {
@@ -23,27 +19,12 @@ export class XSensXRRig extends HardwareRig {
         return true;
     }
 
-    getHipTransform(): { position: Vector3, rotation: Quaternion } {
-        return {
-            position: this.hipPosition,
-            rotation: this.hipRotation
-        };
-    }
 
     getBoneTransforms(): Array<[Vector3, Quaternion]> {
         return this.boneTransforms;
     }
 
-    networkUpdate(playerState: PlayerSchema) {
-        this.hipPosition.x = playerState.hipPosition.x;
-        this.hipPosition.y = playerState.hipPosition.y;
-        this.hipPosition.z = playerState.hipPosition.z;
-
-        this.hipRotation.w = playerState.hipRotation.w;
-        this.hipRotation.x = playerState.hipRotation.x;
-        this.hipRotation.y = playerState.hipRotation.y;
-        this.hipRotation.z = playerState.hipRotation.z;
-
+    networkUpdate(playerState: PlayerSchema, room: Room) {
         // Zip playerState.bonePositions and playerState.boneRotations
         this.boneTransforms = playerState.bonePositions.map((position, index) => {
             return [

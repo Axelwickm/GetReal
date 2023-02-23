@@ -2,8 +2,8 @@ import { Room, Client } from "colyseus";
 import { ArraySchema } from "@colyseus/schema";
 
 import { GetRealSchema } from "./schema/GetRealSchema";
-import { QuaternionSchema, Vector3Schema } from "./schema/MathSchema";
-import { PlayerSchema } from "./schema/PlayerSchema";
+import { QuaternionSchema, Vector3Schema } from "./schema/MathSchemas";
+import { PlayerSchema, PlayerTransformUpdateMessage, PlayerTransformUpdateMessageType } from "./schema/PlayerSchema";
 import { XSensReader, XSensData } from "./XSensReader";
 
 let xSensReaderInstance: XSensReader | null = null;
@@ -23,7 +23,18 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 const data = xSensReaderInstance!.getLatestData();
                 this.setPerformerXSensData(undefined, data);
             }
-        }, 1000 / 50);
+        }, 1000 / 90);
+
+        // Message handlers
+        this.onMessage(PlayerTransformUpdateMessageType, (client, message: PlayerTransformUpdateMessage) => {
+            // Players can only change their own transform
+            if (client.sessionId !== message.sessionId) {
+                console.warn("Player tried to change transform for another player. Aka cheating.");
+                return;
+            } else {
+                this.state.players.get(message.sessionId)?.updateFromTransformMessage(message);
+            }
+        });
     }
 
     setPerformerXSensData(performerId: number | undefined, data: XSensData) {
@@ -37,18 +48,6 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 // It should probably just be set by the client from the XR.
 
                 // Update player
-                player.hipPosition = new Vector3Schema(
-                    data.bonePositions[0][0],
-                    data.bonePositions[0][1],
-                    data.bonePositions[0][2]
-                );
-                player.hipRotation = new QuaternionSchema(
-                    data.boneRotations[0][0],
-                    data.boneRotations[0][1],
-                    data.boneRotations[0][2],
-                    data.boneRotations[0][3]
-                );
-
                 if (player.bonePositions.length !== data.bonePositions.length) {
                     player.bonePositions = new ArraySchema();
                     for (let i = 0; i < data.bonePositions.length; i++) {
@@ -114,4 +113,6 @@ export class GetRealRoom extends Room<GetRealSchema> {
 
     // Cleanup callback, called after there are no more clients in the room. (see `autoDispose`)
     onDispose() {}
+
+
 }

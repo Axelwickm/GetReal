@@ -3,14 +3,18 @@ import { HardwareRig } from "../hardware_rigs/HardwareRig";
 
 import { Scene, Mesh, MeshBuilder } from "@babylonjs/core";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { MeshPrimitiveGenerator } from "../PrimitiveGenerator";
 
 export class DebugAvatar extends Avatar {
+    cameraCube: Mesh;
     hipCube: Mesh;
 
     boneCubes: Array<Mesh> = [];
 
     constructor(scene: Scene, rig: HardwareRig) {
         super(scene, rig);
+
+        this.cameraCube = MeshPrimitiveGenerator.camera(scene);
 
         this.hipCube = MeshBuilder.CreateBox("box", {}, scene);
         this.hipCube.scaling = new Vector3(0.2, 0.1, 0.1);
@@ -22,7 +26,6 @@ export class DebugAvatar extends Avatar {
             boneCube.material = this.scene.getMaterialByName("black")!;
             this.boneCubes.push(boneCube);
         }
-
     }
 
     destroy() {
@@ -42,24 +45,24 @@ export class DebugAvatar extends Avatar {
     }
 
     update() {
-        //const cameraTransform = this.rig.getCameraTransform();
-        const hipTransform = this.rig.getHipTransform();
+        const cameraTransform = this.rig.getCameraTransform();
+        this.cameraCube.position = cameraTransform[0];
+        this.cameraCube.rotationQuaternion = cameraTransform[1];
+
         const boneTransforms = this.rig.getBoneTransforms();
+        if (boneTransforms.length !== 0) {
+            this.hipCube.position = boneTransforms[0][0];
+            this.hipCube.rotationQuaternion = boneTransforms[0][1];
 
-        this.hipCube.position = hipTransform.position;
-        this.hipCube.rotationQuaternion = hipTransform.rotation;
+            if (boneTransforms.length > this.boneCubes.length)
+                throw new Error("Too many bone transforms!");
 
-        if (boneTransforms.length > this.boneCubes.length)
-            throw new Error("Too many bone transforms!");
-
-        for (let i = 0; i < boneTransforms.length; i++) {
-            this.boneCubes[i].position = boneTransforms[i][0];
-            this.boneCubes[i].rotationQuaternion = boneTransforms[i][1];
+            for (let i = 0; i < boneTransforms.length; i++) {
+                this.boneCubes[i].position = boneTransforms[i][0];
+                this.boneCubes[i].rotationQuaternion = boneTransforms[i][1];
+            }
         }
     }
 
-    calibrate() {
-
-    }
-
+    calibrate() {}
 }

@@ -1,7 +1,8 @@
 import { PlayerSchema } from "./schema/PlayerSchema";
-
 import { HardwareRig } from './hardware_rigs/HardwareRig';
 import { Avatar } from './avatars/Avatar';
+
+import { Room } from 'colyseus.js';
 
 
 export class Player {
@@ -12,14 +13,15 @@ export class Player {
     constructor(playerState: PlayerSchema,
                 rig: HardwareRig,
                 avatar: Avatar | null,
-                debugAvatar: Avatar | null) {
+                debugAvatar: Avatar | null,
+                room: Room) {
         this.rig = rig;
         this.avatar = avatar;
         this.debugAvatar = debugAvatar;
 
         // Add listeners for player state changes
-        playerState.onChange = (change) => {
-            rig.networkUpdate(playerState);
+        playerState.onChange = (_change) => {
+            rig.networkUpdate(playerState, room);
         }
     }
 

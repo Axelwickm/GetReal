@@ -8,18 +8,21 @@ import { NetworkRig } from "./hardware_rigs/NetworkRig";
 import { DebugAvatar } from "./avatars/DebugAvatar";
 
 import { Room } from "colyseus.js";
-import { Scene } from "@babylonjs/core";
+import { Scene, WebXRDefaultExperience } from "@babylonjs/core";
 import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
 import { AssetManager } from "./AssetManager";
+import { XRRig } from "./hardware_rigs/XRRig";
 
 export class Game {
     private scene: Scene;
+    private xr: WebXRDefaultExperience;
     private players: Map<string, Player> = new Map();
     private room?: Room<GetRealSchema>;
     private debugMode: boolean = false;
 
-    constructor(scene: Scene) {
+    constructor(scene: Scene, xr: WebXRDefaultExperience) {
         this.scene = scene;
+        this.xr = xr;
     }
 
     setRoom(room: Room<GetRealSchema>) {
@@ -38,7 +41,8 @@ export class Game {
             const isMe = sessionId === room.sessionId;
             let rig: HardwareRig;
             if (isMe) {
-                rig = new XSensXRRig(); // TODO: be able to configure this
+                //rig = new XSensXRRig(); // TODO: be able to configure this
+                rig = new XRRig(this.xr);
             } else {
                 rig = new NetworkRig();
             }
@@ -46,12 +50,20 @@ export class Game {
             const debugAvatar = new DebugAvatar(this.scene, rig);
             debugAvatar.setEnabled(false);
 
-            const character = AssetManager.getInstance().getCharacterOptions()[0];
-            const fullBodyAvatar = new FullBodyAvatar(this.scene, rig, character);
-            fullBodyAvatar.setEnabled(true);
+            const character =
+                AssetManager.getInstance().getCharacterOptions()[0];
+            const fullBodyAvatar = new FullBodyAvatar(
+                this.scene,
+                rig,
+                character
+            );
+            fullBodyAvatar.setEnabled(false);
 
             // add player
-            this.players.set(sessionId, new Player(playerState, rig, fullBodyAvatar, debugAvatar));
+            this.players.set(
+                sessionId,
+                new Player(playerState, rig, fullBodyAvatar, debugAvatar, room)
+            );
         };
 
         room.state.players.onRemove = (
@@ -71,7 +83,7 @@ export class Game {
         });
     }
 
-    update() : void {
+    update(): void {
         this.players.forEach((player) => {
             player.update();
         });

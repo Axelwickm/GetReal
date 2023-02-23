@@ -1,6 +1,7 @@
 import { Game } from "./Game";
 import { AssetManager } from "./AssetManager";
 import { GetRealSchema } from "./schema/GetRealSchema";
+import { MaterialsGenerator } from "./MaterialsCreator";
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -12,13 +13,16 @@ import {
     Vector3,
     HemisphericLight,
     MeshBuilder,
-    StandardMaterial,
 } from "@babylonjs/core";
 
 import * as Colyseus from "colyseus.js";
 
 class App {
     constructor() {
+        this.init()
+    }
+
+    async init() {
         // create the canvas html element and attach it to the webpage
         var canvas = document.createElement("canvas");
         canvas.style.width = "100%";
@@ -37,16 +41,8 @@ class App {
         var engine = new Engine(canvas, true);
         var scene = new Scene(engine);
 
-        // Define "red" material
-        const redMaterial = new StandardMaterial("red", scene);
-        redMaterial.diffuseColor.set(1, 0, 0);
-        scene.materials.push(redMaterial);
-
-        // Define "black" material
-        const blackMaterial = new StandardMaterial("black", scene);
-        blackMaterial.diffuseColor.set(0, 0, 0);
-        scene.materials.push(blackMaterial);
-
+        // Add materials to scene
+        MaterialsGenerator.addMaterialsToScene(scene);
         
         // TODO: move this stuff below to Game
         var camera: ArcRotateCamera = new ArcRotateCamera(
@@ -58,11 +54,9 @@ class App {
             scene
         );
         camera.attachControl(canvas, true);
-        // Make control less sensitive
         camera.lowerRadiusLimit = 1;
         camera.upperRadiusLimit = 10;
         camera.wheelPrecision = 50;
-
 
         var light1: HemisphericLight = new HemisphericLight(
             "light1",
@@ -76,12 +70,13 @@ class App {
             scene
         );
 
-        scene.createDefaultXRExperienceAsync({
+        const xr = await scene.createDefaultXRExperienceAsync({
             floorMeshes: [ground],
         });
 
+
         // Create core Game object
-        const game = new Game(scene);
+        const game = new Game(scene, xr);
 
         // Join Colyseus client
         const host = window.location.hostname;
@@ -98,10 +93,8 @@ class App {
                 throw e;
             });
 
-        // Load assets
-        AssetManager.getInstance().loadAssets(scene).then(() => {
-
-        });
+        // Load assets asynchronously
+        AssetManager.getInstance().loadAssets(scene)
 
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {
