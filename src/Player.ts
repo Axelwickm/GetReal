@@ -21,7 +21,6 @@ export class Player {
 
         // Add listeners for player state changes
         playerState.onChange = (_change) => {
-            console.log("player state changed!", _change);
             rig.networkUpdate(playerState, room);
         }
     }

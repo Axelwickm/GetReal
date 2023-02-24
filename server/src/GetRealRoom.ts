@@ -45,35 +45,23 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 (performerId === undefined && player.performerId !== -1)
             ) {
                 // Update player
-                if (player.bonePositions.length !== data.bonePositions.length) {
-                    player.bonePositions = new ArraySchema();
-                    for (let i = 0; i < data.bonePositions.length; i++) {
-                        player.bonePositions.push(new Vector3Schema());
-                    }
-                }
-
+                player.bonePositions = new ArraySchema<Vector3Schema>();
                 for (let i = 0; i < data.bonePositions.length; i++) {
-                    player.bonePositions[i] = new Vector3Schema(
+                    player.bonePositions.push(new Vector3Schema(
                         data.bonePositions[i][0],
                         data.bonePositions[i][1],
                         data.bonePositions[i][2]
-                    );
+                    ));
                 }
 
-                if (player.boneRotations.length !== data.boneRotations.length) {
-                    player.boneRotations = new ArraySchema();
-                    for (let i = 0; i < data.boneRotations.length; i++) {
-                        player.boneRotations.push(new QuaternionSchema());
-                    }
-                }
-
+                player.boneRotations = new ArraySchema<QuaternionSchema>();
                 for (let i = 0; i < data.boneRotations.length; i++) {
-                    player.boneRotations[i] = new QuaternionSchema(
+                    player.boneRotations.push(new QuaternionSchema(
                         data.boneRotations[i][0],
                         data.boneRotations[i][1],
                         data.boneRotations[i][2],
                         data.boneRotations[i][3]
-                    );
+                    ));
                 }
 
                 this.state.players.set(sessionId, player);

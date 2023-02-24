@@ -43,7 +43,6 @@ export class XSensXRRig extends HardwareRig {
 
     networkUpdate(playerState: PlayerSchema, room: Room) {
         // Zip playerState.bonePositions and playerState.boneRotations
-        console.log("Updating bone transforms: ", playerState.bonePositions.length, playerState.boneRotations.length);
         this.boneTransforms = playerState.bonePositions.map(
             (position, index) => {
                 return [
