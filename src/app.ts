@@ -36,14 +36,14 @@ class App {
             document.body.style.color = "darkred";
             document.body.style.fontSize = "xx-large";
         };
-        
+
         // initialize babylon scene and engine
         var engine = new Engine(canvas, true);
         var scene = new Scene(engine);
 
         // Add materials to scene
         MaterialsGenerator.addMaterialsToScene(scene);
-        
+
         // TODO: move this stuff below to Game
         var camera: ArcRotateCamera = new ArcRotateCamera(
             "Camera",
@@ -117,10 +117,8 @@ class App {
         // Find calibrate listener and have it call game.calibrate()
         const calibrateButton = document.getElementById("calibrate");
         if (calibrateButton) {
-            console.log("Found calibrate button");
             calibrateButton.addEventListener("click", () => {
-                console.log("Calibrating");
-                game.calibrate();
+                game.calibrate(); // Async
             });
         }
 
@@ -137,12 +135,12 @@ class App {
             scene.render();
             let render = Date.now() - start - gameUpdate;
 
-            avgTotal = avgTotal*0.98 + (Date.now() - lastTime)*0.02;
+            avgTotal = avgTotal * 0.98 + (Date.now() - lastTime) * 0.02;
             lastTime = Date.now();
 
             // Update FPS counter
             if (Date.now() - lastUpdate > 1000) {
-                let fps = Math.round(1000/avgTotal);
+                let fps = Math.round(1000 / avgTotal);
                 lastTime = Date.now();
                 lastUpdate = Date.now();
                 if (fpsCounter) fpsCounter.innerHTML = `FPS: ${fps} - u ${gameUpdate}ms - r ${render}ms`;

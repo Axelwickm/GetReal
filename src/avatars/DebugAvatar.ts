@@ -71,5 +71,5 @@ export class DebugAvatar extends Avatar {
         }
     }
 
-    calibrate() {}
+    async calibrate() {}
 }

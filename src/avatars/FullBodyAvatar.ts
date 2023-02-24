@@ -36,7 +36,6 @@ const BONE_ASSIGNMENTS_ARRAY: Array<[string, number, number | null]> = [
     ...BONE_ASSIGNMENTS_MAP,
 ].map(([name, [index, parentIndex]]) => [name, index, parentIndex]);
 
-
 export class FullBodyAvatar extends Avatar {
     private skeleton?: Skeleton;
     private armatureBones?: Array<TransformNode>;
@@ -74,20 +73,22 @@ export class FullBodyAvatar extends Avatar {
                     }
                 }**/
 
-                this.armatureBones = character.armature.getChildTransformNodes();
-                this.modelBoneOffsets = Array(BONE_ASSIGNMENTS_ARRAY.length).fill(
-                    Vector3.Zero()
-                );
-                this.modelBoneAngles = Array(BONE_ASSIGNMENTS_ARRAY.length).fill(
-                    Quaternion.Identity()
-                );
+                this.armatureBones =
+                    character.armature.getChildTransformNodes();
+                this.modelBoneOffsets = Array(
+                    BONE_ASSIGNMENTS_ARRAY.length
+                ).fill(Vector3.Zero());
+                this.modelBoneAngles = Array(
+                    BONE_ASSIGNMENTS_ARRAY.length
+                ).fill(Quaternion.Identity());
                 for (let i = 0; i < this.armatureBones.length; i++) {
                     const bone = this.armatureBones[i];
                     const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
                     if (boneInds) {
                         // Set the bone's rotation to the model's bone rotation
                         this.modelBoneOffsets[boneInds[0]] = bone.position;
-                        this.modelBoneAngles[boneInds[0]] = bone.rotationQuaternion!;
+                        this.modelBoneAngles[boneInds[0]] =
+                            bone.rotationQuaternion!;
                     }
                 }
 
@@ -128,37 +129,38 @@ export class FullBodyAvatar extends Avatar {
         }
     }
 
-    calibrate() {
+    async calibrate() {
         // Here, we assume the user is standing straight with arms to the side (exactly like the character)
         // We then measure the differences in joint angles (TODO: and position/scale?) between the character and the user
         // It is not just a fine tuning thing. For example, the leg bones in the rig point down, while the character's leg bones point forward.
-        console.log("Calibrating full body avatar in 3 seconds. Stand straight with arms to the side.");
-        setTimeout(() => { console.log("2"); }, 1000);
-        setTimeout(() => { console.log("1"); }, 2000);
-        setTimeout(() => {
-            console.log("Calibrating full body avatar");
-            const globalBoneTransforms = this.rig.getBoneTransforms();
+        console.log("Calibrating full body avatar.");
+        const globalBoneTransforms = this.rig.getBoneTransforms();
+        if (globalBoneTransforms.length === 0)
+            return console.warn("No bone transforms gotten from rig. FullBodyAvatar cannot calibrate.");
 
-            for (let i = 0; i < this.armatureBoneOffsets.length; i++) {
-                this.armatureBoneOffsets[i] = Vector3.Zero();
-                this.armatureBoneAngleOffsets[i] = Quaternion.Identity();
-            }
+        for (let i = 0; i < this.armatureBoneOffsets.length; i++) {
+            this.armatureBoneOffsets[i] = Vector3.Zero();
+            this.armatureBoneAngleOffsets[i] = Quaternion.Identity();
+        }
 
-            const relativeBoneTransforms = this.targetRelativeBoneTransforms(
-                globalBoneTransforms
+        const relativeBoneTransforms =
+            this.targetRelativeBoneTransforms(globalBoneTransforms);
+
+        if (
+            relativeBoneTransforms.length !==
+            this.armatureBoneAngleOffsets.length
+        )
+            throw new Error("Invalid length");
+
+        for (let i = 0; i < this.armatureBoneAngleOffsets.length; i++) {
+            this.armatureBoneOffsets[i] = this.modelBoneOffsets[i].subtract(
+                relativeBoneTransforms[i][0].clone()
             );
-
-            if (relativeBoneTransforms.length !== this.armatureBoneAngleOffsets.length)
-                throw new Error("Invalid length");
-
-            for (let i = 0; i < this.armatureBoneAngleOffsets.length; i++) {
-                this.armatureBoneOffsets[i] = 
-                    this.modelBoneOffsets[i].subtract(relativeBoneTransforms[i][0].clone());
-                this.armatureBoneAngleOffsets[i] = this.modelBoneAngles[i].multiply(
-                    Quaternion.Inverse(relativeBoneTransforms[i][1].clone())
-                );
-            }
-        }, 3000);
+            this.armatureBoneAngleOffsets[i] = this.modelBoneAngles[i].multiply(
+                Quaternion.Inverse(relativeBoneTransforms[i][1].clone())
+            );
+        }
+        console.log("Full body avatar calibrated.");
     }
 
     targetRelativeBoneTransforms(
@@ -175,8 +177,7 @@ export class FullBodyAvatar extends Avatar {
                 BONE_ASSIGNMENTS_ARRAY[i];
 
             const gT = globalTransforms[boneIndex];
-            if (gT === undefined)
-                continue;
+            if (gT === undefined) continue;
 
             if (parentIndex === null) {
                 relativeBoneTransforms.push([
@@ -192,17 +193,19 @@ export class FullBodyAvatar extends Avatar {
                     );
 
                 let angleDelta = gT[1].multiply(pT[1].clone().invert());
-                angleDelta = angleDelta.multiply(this.armatureBoneAngleOffsets[boneIndex]);
+                angleDelta = angleDelta.multiply(
+                    this.armatureBoneAngleOffsets[boneIndex]
+                );
                 const globalPosDelta = gT[0].subtract(pT[0]);
                 //const globalPosDelta = this.modelBoneOffsets[boneIndex];
-                const rotatedPosDelta = (new Vector3(0, 1, 0).rotateByQuaternionToRef(
-                    angleDelta,
-                    new Vector3()
-                )).scale(globalPosDelta.length()).add(this.armatureBoneOffsets[boneIndex]);
-                const relativeTransform = [
-                    rotatedPosDelta,
-                    angleDelta
-                ] as [Vector3, Quaternion];
+                const rotatedPosDelta = new Vector3(0, 1, 0)
+                    .rotateByQuaternionToRef(angleDelta, new Vector3())
+                    .scale(globalPosDelta.length())
+                    .add(this.armatureBoneOffsets[boneIndex]);
+                const relativeTransform = [rotatedPosDelta, angleDelta] as [
+                    Vector3,
+                    Quaternion
+                ];
                 relativeBoneTransforms.push(relativeTransform);
             }
         }

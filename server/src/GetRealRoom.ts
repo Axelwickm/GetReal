@@ -26,7 +26,7 @@ export class GetRealRoom extends Room<GetRealSchema> {
         }, 1000 / 90);
 
         // Message handlers
-        this.onMessage(PlayerTransformUpdateMessageType, (client, message: PlayerTransformUpdateMessage) => {
+        /*this.onMessage(PlayerTransformUpdateMessageType, (client, message: PlayerTransformUpdateMessage) => {
             // Players can only change their own transform
             if (client.sessionId !== message.sessionId) {
                 console.warn("Player tried to change transform for another player. Aka cheating.");
@@ -34,7 +34,7 @@ export class GetRealRoom extends Room<GetRealSchema> {
             } else {
                 this.state.players.get(message.sessionId)?.updateFromTransformMessage(message);
             }
-        });
+        });*/
     }
 
     setPerformerXSensData(performerId: number | undefined, data: XSensData) {
@@ -44,9 +44,6 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 player.performerId === performerId ||
                 (performerId === undefined && player.performerId !== -1)
             ) {
-                // TODO: how should camera position be handled?
-                // It should probably just be set by the client from the XR.
-
                 // Update player
                 if (player.bonePositions.length !== data.bonePositions.length) {
                     player.bonePositions = new ArraySchema();

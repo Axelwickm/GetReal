@@ -41,8 +41,8 @@ export class Game {
             const isMe = sessionId === room.sessionId;
             let rig: HardwareRig;
             if (isMe) {
-                //rig = new XSensXRRig(); // TODO: be able to configure this
-                rig = new XRRig(this.xr);
+                rig = new XSensXRRig(this.xr); // TODO: be able to configure this
+                //rig = new XRRig(this.xr);
             } else {
                 rig = new NetworkRig();
             }
@@ -57,7 +57,7 @@ export class Game {
                 rig,
                 character
             );
-            fullBodyAvatar.setEnabled(false);
+            fullBodyAvatar.setEnabled(true);
 
             // add player
             this.players.set(
@@ -75,12 +75,11 @@ export class Game {
         };
     }
 
-    calibrate() {
-        this.players.forEach((player) => {
-            if (player.isMe()) {
-                player.calibrate();
-            }
-        });
+    async calibrate() {
+        for (const player of this.players.values()) {
+            if (player.isMe())
+                await player.calibrate();
+        }
     }
 
     update(): void {

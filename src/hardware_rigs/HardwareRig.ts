@@ -29,4 +29,8 @@ export abstract class HardwareRig {
     getBoneTransforms(): Array<[Vector3, Quaternion]> {
         throw new Error("Abstract method not implemented");
     }
+
+    async calibrate() {
+        throw new Error("Abstract method not implemented");
+    }
 }

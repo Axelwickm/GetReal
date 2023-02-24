@@ -20,6 +20,10 @@ export class NetworkRig extends HardwareRig {
         return false;
     }
 
+    async calibrate() {
+
+    }
+
     networkUpdate(playerState: PlayerSchema, room: Room) {
         this.cameraTransform = [
             new Vector3(playerState.cameraPosition.x, playerState.cameraPosition.y, playerState.cameraPosition.z),

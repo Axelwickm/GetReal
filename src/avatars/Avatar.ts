@@ -30,7 +30,7 @@ export class Avatar {
         this.enabled = enabled;
     }
 
-    calibrate() {
+    async calibrate() {
         throw new Error("Abstract method not implemented");
     }
 }

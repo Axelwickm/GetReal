@@ -21,6 +21,7 @@ export class Player {
 
         // Add listeners for player state changes
         playerState.onChange = (_change) => {
+            console.log("player state changed!", _change);
             rig.networkUpdate(playerState, room);
         }
     }
@@ -34,10 +35,16 @@ export class Player {
         return this.rig.isMe();
     }
 
-    calibrate() {
-        // TODO: this.rig.calibrate();
-        this.avatar?.calibrate();
-        this.debugAvatar?.calibrate();
+    async calibrate() {
+        console.log("Calibrating in 3");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("Calibrating in 2");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("Calibrating in 1");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await this.rig.calibrate();
+        await this.avatar?.calibrate();
+        await this.debugAvatar?.calibrate();
     }
 }
 
