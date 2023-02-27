@@ -20,15 +20,19 @@ import { AvatarSchema, AvatarUpdateMessage, AvatarUpdateMessageType } from "./sc
 import { HardwareRigSchema, HardwareRigUpdateMessage, HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
 import { XRRig } from "./hardware_rigs/XRRig";
 import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
+import { Game } from "./Game";
 
 export class AdminMenu {
     private adminMenuElement: HTMLDivElement;
     private playersElement: HTMLDivElement;
 
+    game: Game;
     room?: Room<GetRealSchema>;
     players: Map<string, PlayerSchema> = new Map();
 
-    constructor() {
+    constructor(game: Game) {
+        this.game = game;
+
         this.adminMenuElement = document.getElementById(
             "adminMenu"
         ) as HTMLDivElement;
@@ -92,8 +96,8 @@ export class AdminMenu {
         );
     }
 
-    registerPlayer(player: PlayerSchema, isMe: boolean) {
-        this.players.set(player.cookieId, player);
+    registerPlayer(playerState: PlayerSchema, isMe: boolean) {
+        this.players.set(playerState.cookieId, playerState);
         let playerElement = this.playersElement.querySelector(
             "#main_player"
         ) as HTMLDivElement;
@@ -104,12 +108,12 @@ export class AdminMenu {
         if (!isMe) {
             // Make copy of first player element
             playerElement = playerElement.cloneNode(true) as HTMLDivElement;
-            playerElement.id = "player_" + player.cookieId;
+            playerElement.id = "player_" + playerState.cookieId;
             this.playersElement.appendChild(playerElement);
         }
 
         // Show menu if it's me and I am admin
-        player.listen("isAdmin", (isAdmin: boolean) => {
+        playerState.listen("isAdmin", (isAdmin: boolean) => {
             if (isMe && isAdmin) {
                 this.show();
             } else if (isMe && !isAdmin) {
@@ -124,8 +128,8 @@ export class AdminMenu {
         isAdminElement.addEventListener("click", () => {
             if (!isMe) {
                 this.msgPlayerSettings({
-                    sessionId: player.sessionId,
-                    isAdmin: !player.isAdmin,
+                    sessionId: playerState.sessionId,
+                    isAdmin: !playerState.isAdmin,
                 });
             }
         });
@@ -137,7 +141,7 @@ export class AdminMenu {
         performerIdElement.addEventListener("click", () => {
             let id = (parseInt(performerIdElement.innerHTML) + 1 + 1) % 4 - 1;
             this.msgPlayerSettings({
-                sessionId: player.sessionId,
+                sessionId: playerState.sessionId,
                 performerId: id
             });
         });
@@ -156,21 +160,21 @@ export class AdminMenu {
 
         noAvatar.addEventListener("click", () => {
             this.msgAvatar({
-                sessionId: player.sessionId,
+                sessionId: playerState.sessionId,
                 avatarType: "undefined"
             });
         });
 
         simpleAvatar.addEventListener("click", () => {
             this.msgAvatar({
-                sessionId: player.sessionId,
+                sessionId: playerState.sessionId,
                 avatarType: SimpleAvatar.getAvatarType()
             });
         });
 
         fullBodyAvatar.addEventListener("click", () => {
             this.msgAvatar({
-                sessionId: player.sessionId,
+                sessionId: playerState.sessionId,
                 avatarType: FullBodyAvatar.getAvatarType()
             });
         });
@@ -185,29 +189,29 @@ export class AdminMenu {
 
         XRRigElement.addEventListener("click", () => {
             this.msgHardwareRig({
-                sessionId: player.sessionId,
+                sessionId: playerState.sessionId,
                 rigType: XRRig.getRigType()
             });
         });
 
         XSensXRElement.addEventListener("click", () => {
             this.msgHardwareRig({
-                sessionId: player.sessionId,
+                sessionId: playerState.sessionId,
                 rigType: XSensXRRig.getRigType()
             });
         });
 
         // On player update, update the player element
-        player.onChange = () => {
-            this.updatePlayerElement(player, playerElement);
-        };
+        this.game.getPlayer(playerState.sessionId)?.addOnChangeCallback(() => {
+            this.updatePlayerElement(playerState, playerElement);
+        });
 
-        player.avatar.onChange = () => {
-            this.updateAvatarElement(player.avatar, playerElement);
+        playerState.avatar.onChange = () => {
+            this.updateAvatarElement(playerState.avatar, playerElement);
         }
 
-        player.hardwareRig.onChange = () => {
-            this.updateHardwareRigElement(player.hardwareRig, playerElement);
+        playerState.hardwareRig.onChange = () => {
+            this.updateHardwareRigElement(playerState.hardwareRig, playerElement);
         }
     }
 
@@ -418,12 +422,6 @@ export class AdminMenu {
     }
 
     updatePlayerElement(player: PlayerSchema, element: HTMLElement) {
-        // session_id, cookie_id, performer_id, admin,
-        // headsetBatteryLevel, leftControllerBatteryLevel, rightControllerBatteryLevel,
-        // frameRate, updateTime, renderTime
-        // hardwareRig (XR or XSensXR)
-        // avatar (No, SimpleAvatar, FullBodyAvatar)
-
         const sessionIdElement = element.querySelector(
             ".session_id"
         ) as HTMLInputElement;

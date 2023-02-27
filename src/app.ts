@@ -69,6 +69,7 @@ class App {
             { width: 10, height: 10 },
             scene
         );
+        ground.visibility = 0;
 
         const xr = await scene.createDefaultXRExperienceAsync({
             floorMeshes: [ground],

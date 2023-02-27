@@ -21,6 +21,8 @@ export class Player {
     avatar: Avatar | undefined;
     debugAvatar: Avatar | undefined;
 
+    onChangeCallbacks: (() => void)[] = [];
+
     constructor(
         playerState: PlayerSchema,
         scene: Scene,
@@ -49,8 +51,14 @@ export class Player {
 
         // Add listeners for player state changes
         playerState.onChange = () => {
-            rig.networkUpdate(playerState, room);
+            for (let i = 0; i < this.onChangeCallbacks.length; i++) {
+                this.onChangeCallbacks[i]();
+            }
         };
+
+        this.addOnChangeCallback(() => {
+            this.rig.networkUpdate(playerState, room);
+        })
 
         playerState.hardwareRig.listen("rigType", () => {
             if (isMe) {
@@ -73,6 +81,10 @@ export class Player {
             }
         });
 
+    }
+
+    addOnChangeCallback(cb: () => void) {
+        this.onChangeCallbacks.push(cb);
     }
 
     update() {

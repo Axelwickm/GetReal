@@ -15,7 +15,7 @@ import { XRRig } from "./hardware_rigs/XRRig";
 export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
-    private adminMenu: AdminMenu = new AdminMenu();
+    private adminMenu: AdminMenu = new AdminMenu(this);
     private players: Map<string, Player> = new Map();
     private room?: Room<GetRealSchema>;
     private debugMode: boolean = false;
@@ -60,6 +60,10 @@ export class Game {
             this.players.delete(sessionId);
             this.adminMenu.setOffline(playerState);
         };
+    }
+
+    getPlayer(sessionId: string): Player | undefined {
+        return this.players.get(sessionId);
     }
 
     async calibrate() {
