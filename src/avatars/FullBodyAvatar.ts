@@ -105,11 +105,11 @@ export class FullBodyAvatar extends Avatar {
         this.setEnabled(false);
     }
 
-    getAvatarType(): string {
+    static getAvatarType(): string {
         return "full_body";
     }
 
-    static getAvatarType(): string {
+    getAvatarType(): string {
         return FullBodyAvatar.getAvatarType();
     }
 
