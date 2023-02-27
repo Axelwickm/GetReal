@@ -100,6 +100,14 @@ export class FullBodyAvatar extends Avatar {
             });
     }
 
+    destroy() {
+        // TODO: we should destory the mesh and skeleton, but righ now we're not copying it.
+    }
+
+    getAvatarType(): string {
+        return "full_body";
+    }
+
     static getAvatarType(): string {
         return "full_body";
     }

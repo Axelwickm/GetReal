@@ -9,6 +9,10 @@ export class SimpleAvatar extends Avatar {
         super(scene, rig);
     }
 
+    getAvatarType(): string {
+        return "simple";
+    }
+
     static getAvatarType(): string {
         return "simple";
     }

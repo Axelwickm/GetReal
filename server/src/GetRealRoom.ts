@@ -2,8 +2,19 @@ import { Room, Client } from "colyseus";
 import { ArraySchema } from "@colyseus/schema";
 
 import { GetRealSchema } from "./schema/GetRealSchema";
+import {
+    RoomSettingsSchema,
+    RoomSettingsUpdateMessage,
+    RoomSettingsUpdateMessageType,
+} from "./schema/RoomSettingsSchema";
 import { QuaternionSchema, Vector3Schema } from "./schema/MathSchemas";
-import { PlayerSchema, PlayerTransformUpdateMessage, PlayerTransformUpdateMessageType } from "./schema/PlayerSchema";
+import {
+    PlayerSchema,
+    PlayerSettingsUpdateMessageType,
+    PlayerSettingsUpdateMessage,
+    PlayerTransformUpdateMessage,
+    PlayerTransformUpdateMessageType,
+} from "./schema/PlayerSchema";
 import { XSensReader, XSensData } from "./XSensReader";
 
 let xSensReaderInstance: XSensReader | null = null;
@@ -26,15 +37,40 @@ export class GetRealRoom extends Room<GetRealSchema> {
         }, 1000 / 90);
 
         // Message handlers
-        /*this.onMessage(PlayerTransformUpdateMessageType, (client, message: PlayerTransformUpdateMessage) => {
-            // Players can only change their own transform
-            if (client.sessionId !== message.sessionId) {
-                console.warn("Player tried to change transform for another player. Aka cheating.");
-                return;
-            } else {
-                this.state.players.get(message.sessionId)?.updateFromTransformMessage(message);
+        this.onMessage(
+            RoomSettingsUpdateMessageType,
+            (client, message: RoomSettingsUpdateMessage) => {
+                this.state.room.updateFromMessage(message);
             }
-        });*/
+        );
+
+        this.onMessage(
+            PlayerSettingsUpdateMessageType,
+            (client, message: PlayerSettingsUpdateMessage) => {
+                const player = this.state.players
+                    .get(client.sessionId)
+                    ?.updateFromSettingsMessage(message);
+                this.state.players.set(client.sessionId, player!);
+            }
+        );
+
+        this.onMessage(
+            PlayerTransformUpdateMessageType,
+            (client, message: PlayerTransformUpdateMessage) => {
+                // Players can only change their own transform
+                if (client.sessionId !== message.sessionId) {
+                    console.warn(
+                        "Player tried to change transform for another player. Aka cheating."
+                    );
+                    return;
+                } else {
+                    const player = this.state.players
+                        .get(message.sessionId)
+                        ?.updateFromTransformMessage(message);
+                    this.state.players.set(message.sessionId, player!);
+                }
+            }
+        );
     }
 
     setPerformerXSensData(performerId: number | undefined, data: XSensData) {
@@ -47,21 +83,25 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 // Update player
                 player.bonePositions = new ArraySchema<Vector3Schema>();
                 for (let i = 0; i < data.bonePositions.length; i++) {
-                    player.bonePositions.push(new Vector3Schema(
-                        data.bonePositions[i][0],
-                        data.bonePositions[i][1],
-                        data.bonePositions[i][2]
-                    ));
+                    player.bonePositions.push(
+                        new Vector3Schema(
+                            data.bonePositions[i][0],
+                            data.bonePositions[i][1],
+                            data.bonePositions[i][2]
+                        )
+                    );
                 }
 
                 player.boneRotations = new ArraySchema<QuaternionSchema>();
                 for (let i = 0; i < data.boneRotations.length; i++) {
-                    player.boneRotations.push(new QuaternionSchema(
-                        data.boneRotations[i][0],
-                        data.boneRotations[i][1],
-                        data.boneRotations[i][2],
-                        data.boneRotations[i][3]
-                    ));
+                    player.boneRotations.push(
+                        new QuaternionSchema(
+                            data.boneRotations[i][0],
+                            data.boneRotations[i][1],
+                            data.boneRotations[i][2],
+                            data.boneRotations[i][3]
+                        )
+                    );
                 }
 
                 this.state.players.set(sessionId, player);
@@ -77,10 +117,11 @@ export class GetRealRoom extends Room<GetRealSchema> {
         console.log(client.sessionId, "joined!");
 
         const player = new PlayerSchema();
+        player.sessionId = client.sessionId;
 
-        // TODO temporary. If first player, set preformerId to 0
+        // First player to join becomes admin
         if (this.state.players.size === 0) {
-            player.performerId = 0;
+            player.isAdmin = true;
         }
 
         this.state.players.set(client.sessionId, player);
@@ -91,6 +132,12 @@ export class GetRealRoom extends Room<GetRealSchema> {
         console.log(client.sessionId, "left!");
 
         this.state.players.delete(client.sessionId);
+        if (this.state.players.size === 1) {
+            // If there is only one player left, make them admin
+            this.state.players.forEach((player, sessionId) => {
+                player.isAdmin = true;
+            });
+        }
 
         // Stop the interval when the player leaves
         this.clock.stop();
@@ -98,6 +145,4 @@ export class GetRealRoom extends Room<GetRealSchema> {
 
     // Cleanup callback, called after there are no more clients in the room. (see `autoDispose`)
     onDispose() {}
-
-
 }

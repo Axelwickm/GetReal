@@ -1,21 +1,21 @@
 import { Player } from "./Player";
+import { AdminMenu } from "./AdminMenu";
 import { HardwareRig } from "./hardware_rigs/HardwareRig";
 import { GetRealSchema } from "./schema/GetRealSchema";
 import { PlayerSchema } from "./schema/PlayerSchema";
 
 import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
 import { NetworkRig } from "./hardware_rigs/NetworkRig";
-import { DebugAvatar } from "./avatars/DebugAvatar";
 
 import { Room } from "colyseus.js";
 import { Scene, WebXRDefaultExperience } from "@babylonjs/core";
-import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
-import { AssetManager } from "./AssetManager";
 import { XRRig } from "./hardware_rigs/XRRig";
+
 
 export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
+    private adminMenu: AdminMenu = new AdminMenu();
     private players: Map<string, Player> = new Map();
     private room?: Room<GetRealSchema>;
     private debugMode: boolean = false;
@@ -31,6 +31,7 @@ export class Game {
         }
 
         this.room = room;
+        this.adminMenu.setRoom(room);
 
         // Watch for incoming network changes
         room.state.players.onAdd = (
@@ -47,23 +48,13 @@ export class Game {
                 rig = new NetworkRig();
             }
 
-            const debugAvatar = new DebugAvatar(this.scene, rig);
-            debugAvatar.setEnabled(false);
-
-            const character =
-                AssetManager.getInstance().getCharacterOptions()[0];
-            const fullBodyAvatar = new FullBodyAvatar(
-                this.scene,
-                rig,
-                character
-            );
-            fullBodyAvatar.setEnabled(true);
-
             // add player
             this.players.set(
                 sessionId,
-                new Player(playerState, rig, fullBodyAvatar, debugAvatar, room)
+                new Player(playerState, this.scene, rig, room)
             );
+
+            this.adminMenu.registerPlayer(playerState, isMe);
         };
 
         room.state.players.onRemove = (
@@ -72,6 +63,7 @@ export class Game {
         ) => {
             console.log("player removed!", playerState, sessionId);
             this.players.delete(sessionId);
+            this.adminMenu.setOffline(playerState);
         };
     }
 

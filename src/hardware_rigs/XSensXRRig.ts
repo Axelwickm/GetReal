@@ -69,12 +69,12 @@ export class XSensXRRig extends HardwareRig {
                 camera.position.z,
             ],
             cameraRotation: [
-                camera.rotationQuaternion.w,
+                camera.rotationQuaternion.w, // Again, watch the order
                 camera.rotationQuaternion.x,
                 camera.rotationQuaternion.y,
                 camera.rotationQuaternion.z,
             ],
         };
-        //room.send(PlayerTransformUpdateMessageType, message);
+        room.send(PlayerTransformUpdateMessageType, message);
     }
 }

@@ -33,6 +33,10 @@ export class DebugAvatar extends Avatar {
         this.hipCube.dispose();
     }
 
+    getAvatarType(): string {
+        return "debug";
+    }
+
     static getAvatarType(): string {
         return "debug";
     }

@@ -6,40 +6,182 @@
     </head>
     <body>
 
-        <div id="controls">
-            <span id="fps">NaN fps - u XXms - r XXms</span>
-            <button id="calibrate">Calibrate local player</button>
+        <div id="adminMenu" style="display: none;">
+            <div id="windowControl">
+                -
+            </div>
+
+            <h3>Room settings</h3>
+            <div class="row">
+                <span>Sound mode:</span>
+                <span class="spacing"></span>
+                <button id="allSound">All</button>
+                <button id="performersSound">Performers</button>
+                <button id="audienceSound">Audience</button>
+                <button id="noneSound">None</button>
+            </div>
+            <div class="row">
+                <span>Spatial Sound:</span>
+                <span class="spacing"></span>
+                <button id="spatialSound">Spatial</button>
+                <button id="globalSound">Global</button>
+            </div>
+            <div class="row">
+                <span>Audience Teleportation:</span>
+                <span class="spacing"></span>
+                <button id="audienceTeleportationOn">On</button>
+                <button id="audienceTeleportationOff">Off</button>
+            </div>
+            <div class="row">
+                <span>Non-admin enter VR immediately:</span>
+                <span class="spacing"></span>
+                <button id="nonAdminEnterVROn">On</button>
+                <button id="nonAdminEnterVROff">Off</button>
+            </div>
+            <br/>
+            <h3>Player settings</h3>
+            <table id="players">
+                <tr>
+                    <th>Session id</th>
+                    <th>Cookie id</th>
+                    <th>Performer id</th>
+                    <th>Level</th>
+                    <th>Battery</th>
+                    <th>Perfomance</th>
+                    <th>Errors</th>
+                </tr>
+                <tr id="main_player">
+                    <th class="session_id">xxx-xx</th>
+                    <th class="cookie_id">xxx-xx</th>
+                    <th class="performer_id">?</th>
+                    <th class="isAdmin">?</th>
+                    <th class="batteryLevels">
+                        <span class="headsetBatteryLevel" title="Headset">???</span>
+                        <span class="leftControllerBatteryLevel" title="Left controller">???</span>
+                        <span class="rightControllerBatteryLevel" title="Right controller">???</span>
+                    </th>
+                    <th class="performance">
+                        <span class="fps" title="Frame rate">??</span>
+                        <span class="updateTime" title="Update time (ms)">??</span>
+                        <span class="renderTime" title="Render time (ms)">??</span>
+                    <th>?</th>
+                    <th class="hardwareRig">
+                        <div class="options">
+                            <button id="XR">XR</button>
+                            <button id="XSensXR">XSens + XR</button>
+                        </div>
+                    </th>
+                    <th class="avatar">
+                        <div class="options">
+                            <button id="No">No</button>
+                            <button id="SimpleAvatar">Simple Avatar</button>
+                            <button id="FullBodyAvatar">Full Body Avatar</button>
+                        </div>
+                    </th>
+
+                    <th><button id="calibrate">Calibrate</button></th>
+                    <th><button id="save">Save</button></th>
+                    <th><button id="clear">Clear</button></th>
+                    <th><button id="delete">Delete</button></th>
+                </tr>
+            </table>
         </div>
     </body>
 
     <style>
-        // Good looking buttons
-        #controls {
+        #adminMenu {
+            font-family: monospace;
             position: absolute;
-            top: 50%;
-            left: 50%;
+            display: flex;
+            flex-direction: column;
+            top: 5%;
+            right: 5%;
+            background: #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #000;
             z-index: 10000000;
         }
 
-        #fps {
-            font-size: 20px;
-            color: #000;
-            margin: 0 10px;
-            width: 200px;
+        #adminMenu.minimized {
+            width: 110px;
+            height: 26px;
+            padding: 0;
+            overflow: hidden;
+            transition: width 0.5s, height 0.5s, padding 0.5s;
         }
 
-        #controls button {
-            background: #fff;
+        #windowControl {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 5px;
+            color: #fff;
+            background: #aaa;
+            border-radius: 0 0 0 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            margin: 5px 0;
+        }
+        
+        .row span {
+            margin: 5px 5px;
+            font-size: 14px;
+            align-self: center;
+        }
+
+        .row .spacing {
+            width: 20px;
+        }
+
+        th {
+            padding: 0px 4px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            margin: 0 8px;
+        }
+
+        .options button {
+            white-space: nowrap;
+        }
+
+        #adminMenu button {
+            border: 1px solid #aaa;
+        }
+
+        #adminMenu button:hover {
+            background: #eee;
+            color: #fff;
+        }
+
+        button.active {
+            background: #aaa;
+            color: #fff;
             border: 1px solid #000;
-            border-radius: 5px;
-            padding: 10px 20px;
-            margin: 0 10px;
-            font-size: 20px;
+        }
+
+        select {
+            width: 100px;
+        }
+
+        .isAdmin {
             cursor: pointer;
         }
 
-        #controls button:hover {
-            background: #eee;
-            color: #fff;
+        .admin {
+            color: #f66;
+        }
+
+        .offline {
+            color: #9a9a9a;
         }
 </html>

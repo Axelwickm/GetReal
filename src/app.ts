@@ -125,7 +125,6 @@ class App {
         let avgTotal = 0;
         let lastTime = Date.now();
         let lastUpdate = Date.now();
-        let fpsCounter = document.getElementById("fps");
 
         // run the main render loop
         engine.runRenderLoop(async () => {
@@ -143,7 +142,7 @@ class App {
                 let fps = Math.round(1000 / avgTotal);
                 lastTime = Date.now();
                 lastUpdate = Date.now();
-                if (fpsCounter) fpsCounter.innerHTML = `FPS: ${fps} - u ${gameUpdate}ms - r ${render}ms`;
+                // TODO: send to server
             }
         });
     }

@@ -13,6 +13,14 @@ export class Avatar {
         this.enabled = true;
     }
 
+    destroy() {
+        throw new Error("Abstract method not implemented");
+    }
+
+
+    getAvatarType(): string {
+        throw new Error("Abstract method not implemented");
+    }
 
     static getAvatarType(): string {
         throw new Error("Abstract method not implemented");
