@@ -120,6 +120,7 @@ export class Game {
     updateServer(fps: number, updateTime: number, renderTime: number) {
         if (this.room) {
             this.room.send(PlayerSettingsUpdateMessageType, {
+                sessionId: this.room.sessionId,
                 fps: fps,
                 updateTime: updateTime,
                 renderTime: renderTime,
