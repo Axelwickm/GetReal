@@ -66,7 +66,7 @@ class App {
 
         var ground = MeshBuilder.CreateGround(
             "ground",
-            { width: 10, height: 10 },
+            { width: 100, height: 100 },
             scene
         );
         ground.visibility = 0;
