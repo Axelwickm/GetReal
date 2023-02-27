@@ -2,13 +2,13 @@ import { Player } from "./Player";
 import { AdminMenu } from "./AdminMenu";
 import { HardwareRig } from "./hardware_rigs/HardwareRig";
 import { GetRealSchema } from "./schema/GetRealSchema";
-import { PlayerSchema } from "./schema/PlayerSchema";
+import { PlayerSchema, PlayerSettingsUpdateMessageType } from "./schema/PlayerSchema";
 
 import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
 import { NetworkRig } from "./hardware_rigs/NetworkRig";
 
 import { Room } from "colyseus.js";
-import { Scene, WebXRDefaultExperience } from "@babylonjs/core";
+import { Scene, WebXRDefaultExperience, Engine } from "@babylonjs/core";
 import { XRRig } from "./hardware_rigs/XRRig";
 
 
@@ -42,8 +42,8 @@ export class Game {
             const isMe = sessionId === room.sessionId;
             let rig: HardwareRig;
             if (isMe) {
-                rig = new XSensXRRig(this.xr); // TODO: be able to configure this
-                //rig = new XRRig(this.xr);
+                //rig = new XSensXRRig(this.xr); // TODO: be able to configure this
+                rig = new XRRig(this.xr);
             } else {
                 rig = new NetworkRig();
             }
@@ -90,5 +90,41 @@ export class Game {
         this.players.forEach((player) => {
             player.debugAvatar?.setEnabled(debugMode);
         });
+    }
+
+    run(engine: Engine) {
+        let avgTotal = 0;
+        let lastTime = Date.now();
+        let lastUpdate = Date.now();
+
+        // run the main render loop
+        engine.runRenderLoop(async () => {
+            let start = Date.now();
+            this.update();
+            let gameUpdate = Date.now() - start;
+            this.scene.render();
+            let render = Date.now() - start - gameUpdate;
+
+            avgTotal = avgTotal * 0.98 + (Date.now() - lastTime) * 0.02;
+            lastTime = Date.now();
+
+            // Update FPS counter
+            if (Date.now() - lastUpdate > 2000) {
+                let fps = Math.round(1000 / avgTotal);
+                lastTime = Date.now();
+                lastUpdate = Date.now();
+                this.updateServer(fps, gameUpdate, render);
+            }
+        });
+    }
+
+    updateServer(fps: number, updateTime: number, renderTime: number) {
+        if (this.room) {
+            this.room.send(PlayerSettingsUpdateMessageType, {
+                fps: fps,
+                updateTime: updateTime,
+                renderTime: renderTime,
+            });
+        }
     }
 }

@@ -122,29 +122,8 @@ class App {
             });
         }
 
-        let avgTotal = 0;
-        let lastTime = Date.now();
-        let lastUpdate = Date.now();
-
-        // run the main render loop
-        engine.runRenderLoop(async () => {
-            let start = Date.now();
-            game.update();
-            let gameUpdate = Date.now() - start;
-            scene.render();
-            let render = Date.now() - start - gameUpdate;
-
-            avgTotal = avgTotal * 0.98 + (Date.now() - lastTime) * 0.02;
-            lastTime = Date.now();
-
-            // Update FPS counter
-            if (Date.now() - lastUpdate > 1000) {
-                let fps = Math.round(1000 / avgTotal);
-                lastTime = Date.now();
-                lastUpdate = Date.now();
-                // TODO: send to server
-            }
-        });
+        game.run(engine);
+       
     }
 }
 
