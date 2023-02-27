@@ -16,6 +16,10 @@ export class NetworkRig extends HardwareRig {
         return "network";
     }
 
+    getRigType(): string {
+        return NetworkRig.getRigType();
+    }
+
     isMe(): boolean {
         return false;
     }

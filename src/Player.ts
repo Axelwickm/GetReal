@@ -6,8 +6,12 @@ import { DebugAvatar } from "./avatars/DebugAvatar";
 import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
 
 import { Room } from "colyseus.js";
-import { Scene } from "@babylonjs/core";
+import { Scene, WebXRDefaultExperience } from "@babylonjs/core";
 import { SimpleAvatar } from "./avatars/SimpleAvatar";
+import { HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
+import { XRRig } from "./hardware_rigs/XRRig";
+import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
+import { NetworkRig } from "./hardware_rigs/NetworkRig";
 
 export class Player {
     scene: Scene;
@@ -20,21 +24,45 @@ export class Player {
     constructor(
         playerState: PlayerSchema,
         scene: Scene,
-        rig: HardwareRig,
-        room: Room
+        room: Room,
+        isMe: boolean,
+        xr: WebXRDefaultExperience
     ) {
         this.scene = scene;
-        this.rig = rig;
         this.avatar = undefined;
 
-        const debugAvatar = new DebugAvatar(this.scene, rig);
+        let rig: HardwareRig;
+        if (isMe) {
+            this.rig = new XRRig(xr); // default
+        } else {
+            this.rig = new NetworkRig();
+        }
+
+        const debugAvatar = new DebugAvatar(this.scene, this.rig);
         debugAvatar.setEnabled(true);
         this.debugAvatar = debugAvatar;
 
-        // Add listeners for player state changes
-        playerState.onChange = (_change) => {
-            rig.networkUpdate(playerState, room);
+        room.send(HardwareRigUpdateMessageType, {
+            sessionId: room.sessionId,
+            rigType: this.rig.getRigType()
+        });
 
+        // Add listeners for player state changes
+        playerState.onChange = () => {
+            rig.networkUpdate(playerState, room);
+        };
+
+        playerState.hardwareRig.listen("rigType", () => {
+            if (isMe) {
+                if (playerState.hardwareRig.rigType === XRRig.getRigType() && this.rig.getRigType() !== XRRig.getRigType()) {
+                    this.rig = new XRRig(xr);
+                } else if (playerState.hardwareRig.rigType === XSensXRRig.getRigType() && this.rig.getRigType() !== XSensXRRig.getRigType()) {
+                    this.rig = new XSensXRRig(xr);
+                }
+            }
+        });
+
+        playerState.avatar.listen("avatarType", () => {
             // hot-swappable avatars
             const avatarType = playerState.avatar.avatarType;
             if (
@@ -43,7 +71,8 @@ export class Player {
             ) {
                 this.setAvatar(avatarType, playerState.avatar.character);
             }
-        };
+        });
+
     }
 
     update() {
@@ -68,11 +97,13 @@ export class Player {
     }
 
     setAvatar(avatarType?: string, character?: string) {
+        character = "BlueMonsterGirl" // TODO: should not be hardcoded
         console.log(
             "Setting avatar to " + avatarType + " with character " + character
         );
         this.avatar?.destroy();
-        if (avatarType === undefined) {
+        if (avatarType === "undefined") {
+            this.avatar?.destroy();
             this.avatar = undefined;
         } else if (avatarType === DebugAvatar.getAvatarType()) {
             throw new Error(

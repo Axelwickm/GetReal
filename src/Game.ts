@@ -40,19 +40,14 @@ export class Game {
         ) => {
             console.log("player added!", playerState, sessionId);
             const isMe = sessionId === room.sessionId;
-            let rig: HardwareRig;
-            if (isMe) {
-                //rig = new XSensXRRig(this.xr); // TODO: be able to configure this
-                rig = new XRRig(this.xr);
-            } else {
-                rig = new NetworkRig();
-            }
-
+            
             // add player
             this.players.set(
                 sessionId,
-                new Player(playerState, this.scene, rig, room)
+                new Player(playerState, this.scene, room, isMe, this.xr)
             );
+
+            // TODO: message handling for calibrating, clearing, saving
 
             this.adminMenu.registerPlayer(playerState, isMe);
         };

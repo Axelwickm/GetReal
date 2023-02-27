@@ -101,7 +101,8 @@ export class FullBodyAvatar extends Avatar {
     }
 
     destroy() {
-        // TODO: we should destory the mesh and skeleton, but righ now we're not copying it.
+        // TODO: we should destory the mesh and skeleton, but right now we're not copying it.
+        this.setEnabled(false);
     }
 
     getAvatarType(): string {
@@ -109,7 +110,7 @@ export class FullBodyAvatar extends Avatar {
     }
 
     static getAvatarType(): string {
-        return "full_body";
+        return FullBodyAvatar.getAvatarType();
     }
 
     setEnabled(enabled: boolean) {

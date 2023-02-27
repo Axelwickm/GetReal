@@ -10,6 +10,10 @@ export abstract class HardwareRig {
         throw new Error("Abstract method not implemented");
     }
 
+    getRigType(): string {
+        throw new Error("Abstract method not implemented");
+    }
+
     isMe(): boolean {
         throw new Error("Abstract method not implemented");
     }

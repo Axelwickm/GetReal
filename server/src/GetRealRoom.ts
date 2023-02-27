@@ -16,6 +16,8 @@ import {
     PlayerTransformUpdateMessageType,
 } from "./schema/PlayerSchema";
 import { XSensReader, XSensData } from "./XSensReader";
+import { AvatarUpdateMessageType, AvatarUpdateMessage } from "./schema/AvatarSchema";
+import { HardwareRigSchema, HardwareRigUpdateMessage, HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
 
 let xSensReaderInstance: XSensReader | null = null;
 export function setXSensReaderInstance(instance: XSensReader) {
@@ -47,27 +49,42 @@ export class GetRealRoom extends Room<GetRealSchema> {
         this.onMessage(
             PlayerSettingsUpdateMessageType,
             (client, message: PlayerSettingsUpdateMessage) => {
-                const player = this.state.players
-                    .get(client.sessionId)
+                this.state.players
+                    .get(message.sessionId)
                     ?.updateFromSettingsMessage(message);
-                this.state.players.set(client.sessionId, player!);
             }
         );
+
+        this.onMessage(HardwareRigUpdateMessageType,
+            (client, message: HardwareRigUpdateMessage) => {
+                this.state.players
+                    .get(message.sessionId)
+                    ?.hardwareRig
+                    .updateFromMessage(message);
+            });
+
+        this.onMessage(AvatarUpdateMessageType,
+            (client, message: AvatarUpdateMessage) => {
+                this.state.players
+                    .get(message.sessionId)
+                    ?.avatar
+                    .updateFromMessage(message);
+        });
+
 
         this.onMessage(
             PlayerTransformUpdateMessageType,
             (client, message: PlayerTransformUpdateMessage) => {
-                // Players can only change their own transform
+                // Players can only change the  ir own transform
                 if (client.sessionId !== message.sessionId) {
                     console.warn(
                         "Player tried to change transform for another player. Aka cheating."
                     );
                     return;
                 } else {
-                    const player = this.state.players
+                    this.state.players
                         .get(message.sessionId)
                         ?.updateFromTransformMessage(message);
-                    this.state.players.set(message.sessionId, player!);
                 }
             }
         );

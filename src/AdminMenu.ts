@@ -14,6 +14,12 @@ import {
 } from "./schema/RoomSettingsSchema";
 
 import { Room } from "colyseus.js";
+import { SimpleAvatar } from "./avatars/SimpleAvatar";
+import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
+import { AvatarSchema, AvatarUpdateMessage, AvatarUpdateMessageType } from "./schema/AvatarSchema";
+import { HardwareRigSchema, HardwareRigUpdateMessage, HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
+import { XRRig } from "./hardware_rigs/XRRig";
+import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
 
 export class AdminMenu {
     private adminMenuElement: HTMLDivElement;
@@ -116,9 +122,78 @@ export class AdminMenu {
             ".isAdmin"
         ) as HTMLInputElement;
         isAdminElement.addEventListener("click", () => {
+            if (!isMe) {
+                this.msgPlayerSettings({
+                    sessionId: player.sessionId,
+                    isAdmin: !player.isAdmin,
+                });
+            }
+        });
+
+        // Performer id
+        const performerIdElement = playerElement.querySelector(
+            ".performerId"
+        ) as HTMLInputElement;
+        performerIdElement.addEventListener("click", () => {
+            let id = (parseInt(performerIdElement.innerHTML) + 1 + 1) % 4 - 1;
             this.msgPlayerSettings({
                 sessionId: player.sessionId,
-                isAdmin: !player.isAdmin,
+                performerId: id
+            });
+        });
+
+
+        // Avatar changes
+        const noAvatar = playerElement.querySelector(
+            ".noAvatar"
+        ) as HTMLInputElement;
+        const simpleAvatar = playerElement.querySelector(
+            ".simpleAvatar"
+        ) as HTMLInputElement;
+        const fullBodyAvatar = playerElement.querySelector(
+            ".fullBodyAvatar"
+        ) as HTMLInputElement;
+
+        noAvatar.addEventListener("click", () => {
+            this.msgAvatar({
+                sessionId: player.sessionId,
+                avatarType: "undefined"
+            });
+        });
+
+        simpleAvatar.addEventListener("click", () => {
+            this.msgAvatar({
+                sessionId: player.sessionId,
+                avatarType: SimpleAvatar.getAvatarType()
+            });
+        });
+
+        fullBodyAvatar.addEventListener("click", () => {
+            this.msgAvatar({
+                sessionId: player.sessionId,
+                avatarType: FullBodyAvatar.getAvatarType()
+            });
+        });
+
+        // Hardware rig changes
+        const XRRigElement = playerElement.querySelector(
+            ".XR"
+        ) as HTMLInputElement;
+        const XSensXRElement = playerElement.querySelector(
+            ".XSensXR"
+        ) as HTMLInputElement;
+
+        XRRigElement.addEventListener("click", () => {
+            this.msgHardwareRig({
+                sessionId: player.sessionId,
+                rigType: XRRig.getRigType()
+            });
+        });
+
+        XSensXRElement.addEventListener("click", () => {
+            this.msgHardwareRig({
+                sessionId: player.sessionId,
+                rigType: XSensXRRig.getRigType()
             });
         });
 
@@ -126,6 +201,14 @@ export class AdminMenu {
         player.onChange = () => {
             this.updatePlayerElement(player, playerElement);
         };
+
+        player.avatar.onChange = () => {
+            this.updateAvatarElement(player.avatar, playerElement);
+        }
+
+        player.hardwareRig.onChange = () => {
+            this.updateHardwareRigElement(player.hardwareRig, playerElement);
+        }
     }
 
     unregisterPlayer(player: PlayerSchema) {
@@ -149,6 +232,14 @@ export class AdminMenu {
 
     msgRoomSettings(msg: RoomSettingsUpdateMessage) {
         this.room?.send(RoomSettingsUpdateMessageType, msg);
+    }
+
+    msgAvatar(msg: AvatarUpdateMessage) {
+        this.room?.send(AvatarUpdateMessageType, msg);
+    }
+
+    msgHardwareRig(msg: HardwareRigUpdateMessage) {
+        this.room?.send(HardwareRigUpdateMessageType, msg);
     }
 
     activateElement(element: HTMLElement) {
@@ -344,7 +435,7 @@ export class AdminMenu {
         cookieIdElement.innerHTML = player.cookieId;
 
         const performerIdElement = element.querySelector(
-            ".performer_id"
+            ".performerId"
         ) as HTMLInputElement;
         performerIdElement.innerHTML = String(player.performerId);
 
@@ -387,6 +478,42 @@ export class AdminMenu {
             ".renderTime"
         ) as HTMLInputElement;
         renderTimeElement.innerHTML = String(player.renderTime);
+    }
 
+    updateAvatarElement(avatar: AvatarSchema, element: HTMLElement) {
+        const noAvatar = element.querySelector(
+            ".noAvatar"
+        ) as HTMLInputElement;
+        const simpleAvatar = element.querySelector(
+            ".simpleAvatar"
+        ) as HTMLInputElement;
+        const fullBodyAvatar = element.querySelector(
+            ".fullBodyAvatar"
+        ) as HTMLInputElement;
+
+        if (avatar.avatarType === "undefined") {
+            this.activateElement(noAvatar);
+        } else if (avatar.avatarType === SimpleAvatar.getAvatarType()) {
+            this.activateElement(simpleAvatar);
+        } else if (avatar.avatarType === FullBodyAvatar.getAvatarType()) {
+            this.activateElement(fullBodyAvatar);
+        } else {
+            throw new Error("Unknown avatar: " + avatar.avatarType);
+        }
+    }
+
+    updateHardwareRigElement(hardwareRig: HardwareRigSchema, element: HTMLElement) {
+        const xr = element.querySelector(
+            ".XR"
+        ) as HTMLInputElement;
+        const xsensXr = element.querySelector(
+            ".XSensXR"
+        ) as HTMLInputElement;
+
+        if (hardwareRig.rigType === XRRig.getRigType()) {
+            this.activateElement(xr);
+        } else if(hardwareRig.rigType === XSensXRRig.getRigType()) {
+            this.activateElement(xsensXr);
+        }
     }
 }

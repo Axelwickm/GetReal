@@ -1,5 +1,6 @@
 import { Vector3Schema, QuaternionSchema } from "./MathSchemas";
 import { AvatarSchema } from "./AvatarSchema";
+import { HardwareRigSchema } from "./HardwareRigSchema";
 
 import { ArraySchema, Schema, type, } from "@colyseus/schema";
 
@@ -41,6 +42,7 @@ export class PlayerSchema extends Schema {
     @type("boolean") isAdmin: boolean = false;
     @type("number") performerId: number = -1;
     @type(AvatarSchema) avatar = new AvatarSchema();
+    @type(HardwareRigSchema) hardwareRig = new HardwareRigSchema();
 
     // Can only updated by client
     @type("number") headsetBatteryLevel: number = 0;
@@ -69,33 +71,22 @@ export class PlayerSchema extends Schema {
     @type([Vector3Schema]) bonePositions = new ArraySchema<Vector3Schema>();
     @type([QuaternionSchema]) boneRotations = new ArraySchema<QuaternionSchema>();
 
-    updateFromSettingsMessage(message: PlayerSettingsUpdateMessage) : PlayerSchema {
-        if (message.cookieId)
-            this.cookieId = message.cookieId;
+    updateFromSettingsMessage(message: PlayerSettingsUpdateMessage) {
+        this.cookieId = message.cookieId ?? this.cookieId;
 
-        if (message.isAdmin)
-            this.isAdmin = message.isAdmin;
-        if (message.performerId)
-            this.performerId = message.performerId;
+        this.isAdmin = message.isAdmin ?? this.isAdmin;
+        this.performerId = message.performerId ?? this.performerId;
 
-        if (message.headsetBatteryLevel)
-            this.headsetBatteryLevel = message.headsetBatteryLevel;
-        if (message.leftControllerBatteryLevel)
-            this.leftControllerBatteryLevel = message.leftControllerBatteryLevel;
-        if (message.rightControllerBatteryLevel)
-            this.rightControllerBatteryLevel = message.rightControllerBatteryLevel;
+        this.headsetBatteryLevel = message.headsetBatteryLevel ?? this.headsetBatteryLevel;
+        this.leftControllerBatteryLevel = message.leftControllerBatteryLevel ?? this.leftControllerBatteryLevel;
+        this.rightControllerBatteryLevel = message.rightControllerBatteryLevel ?? this.rightControllerBatteryLevel;
 
-        if (message.fps)
-            this.fps = message.fps;
-        if (message.updateTime)
-            this.updateTime = message.updateTime;
-        if (message.renderTime)
-            this.renderTime = message.renderTime;
-
-        return this;
+        this.fps = message.fps ?? this.fps;
+        this.updateTime = message.updateTime ?? this.updateTime;
+        this.renderTime = message.renderTime ?? this.renderTime;
     }
 
-    updateFromTransformMessage(message: PlayerTransformUpdateMessage) : PlayerSchema {
+    updateFromTransformMessage(message: PlayerTransformUpdateMessage) {
         if (message.cameraPosition)
             this.cameraPosition = new Vector3Schema(message.cameraPosition[0], message.cameraPosition[1], message.cameraPosition[2]);
         if (message.cameraRotation)
@@ -110,7 +101,5 @@ export class PlayerSchema extends Schema {
             this.rightHandPosition = new Vector3Schema(message.rightHandPosition[0], message.rightHandPosition[1], message.rightHandPosition[2]);
         if (message.rightHandRotation)
             this.rightHandRotation = new QuaternionSchema(message.rightHandRotation[0], message.rightHandRotation[1], message.rightHandRotation[2], message.rightHandRotation[3]);
-
-        return this;
     }
 }

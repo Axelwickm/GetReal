@@ -14,12 +14,17 @@ export class XSensXRRig extends HardwareRig {
     xr: WebXRDefaultExperience;
 
     constructor(xr: WebXRDefaultExperience) {
+        console.log("Create XSens + XR Rig");
         super();
         this.xr = xr;
     }
 
     static getRigType(): string {
         return "xsens_xr";
+    }
+
+    getRigType(): string {
+        return XSensXRRig.getRigType();
     }
 
     isMe(): boolean {

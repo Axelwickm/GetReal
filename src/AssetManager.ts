@@ -34,7 +34,7 @@ const ASSETS: Array<AssetRef> = [
 ];
 
 export type EnvironmentAsset = {
-    mesh: AbstractMesh;
+    meshes: Array<AbstractMesh>;
 };
 
 export type CharacterAsset = {
@@ -113,27 +113,26 @@ export class AssetManager {
                 scene
             )
                 .then((result) => {
-                    result.particleSystems.forEach((ps) => {
-                        ps.stop();
-                    });
-
-                    // Put in one parent mesh
-                    const parent = new AbstractMesh(assetRef.name, scene);
-                    result.meshes.forEach((mesh) => {
-                        mesh.parent = parent;
-                    });
-
-                    result.skeletons.forEach((skeleton) => {
-                        skeleton.name = assetRef.name;
-                    });
-
-
                     if (assetRef.type === "environment") {
-                        parent.setEnabled(true);
                         assetRef.defferedResolve!({
-                            mesh: parent,
+                            meshes: result.meshes,
                         });
                     } else if (assetRef.type === "character") {
+                        result.particleSystems.forEach((ps) => {
+                            ps.stop();
+                        });
+
+                        // Put in one parent mesh
+                        const parent = new AbstractMesh(assetRef.name, scene);
+                        result.meshes.forEach((mesh) => {
+                            mesh.parent = parent;
+                        });
+
+                        result.skeletons.forEach((skeleton) => {
+                            skeleton.name = assetRef.name;
+                        });
+
+
                         parent.setEnabled(false);
                         // Find transform node of name Armature
                         const armature = parent

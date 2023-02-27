@@ -9,11 +9,11 @@ export class SimpleAvatar extends Avatar {
         super(scene, rig);
     }
 
-    getAvatarType(): string {
+    static getAvatarType(): string {
         return "simple";
     }
 
-    static getAvatarType(): string {
-        return "simple";
+    getAvatarType(): string {
+        return SimpleAvatar.getAvatarType();
     }
 }

@@ -13,12 +13,17 @@ export class XRRig extends HardwareRig {
     xr: WebXRDefaultExperience;
 
     constructor(xr: WebXRDefaultExperience) {
+        console.log("Create XRRig");
         super();
         this.xr = xr;
     }
 
     static getRigType(): string {
         return "xr";
+    }
+
+    getRigType(): string {
+        return XRRig.getRigType();
     }
 
     isMe(): boolean {

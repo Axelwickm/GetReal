@@ -38,7 +38,7 @@ export class DebugAvatar extends Avatar {
     }
 
     static getAvatarType(): string {
-        return "debug";
+        return DebugAvatar.getAvatarType();
     }
 
     setEnabled(enabled: boolean) {
