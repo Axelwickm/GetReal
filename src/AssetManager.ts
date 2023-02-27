@@ -1,4 +1,10 @@
-import { Scene, SceneLoader, Skeleton, AbstractMesh, TransformNode } from "@babylonjs/core";
+import {
+    Scene,
+    SceneLoader,
+    Skeleton,
+    AbstractMesh,
+    TransformNode,
+} from "@babylonjs/core";
 
 /*
  * Singleton class for loading assets in order of priority, and then storing references to them
@@ -8,19 +14,28 @@ import { Scene, SceneLoader, Skeleton, AbstractMesh, TransformNode } from "@baby
 type AssetRef = {
     name: string;
     path: string;
-    type: "character"; // TODO: add more types
-    defferedResolve?: (value: CharacterAsset) => void;
+    type: "character" | "environment";
+    defferedResolve?: (value: CharacterAsset | EnvironmentAsset) => void;
     defferedReject?: (reason?: any) => void;
 };
 
 const CONCURRENT_LOADS = 4;
 const ASSETS: Array<AssetRef> = [
     {
+        name: "Warehouse",
+        path: "Environments/Warehouse.glb",
+        type: "environment",
+    },
+    {
         name: "BlueMonsterGirl",
         path: "FullBodyAvatars/BlueMonsterGirl.glb",
         type: "character",
     },
 ];
+
+export type EnvironmentAsset = {
+    mesh: AbstractMesh;
+};
 
 export type CharacterAsset = {
     skeleton: Skeleton;
@@ -29,6 +44,7 @@ export type CharacterAsset = {
 };
 
 export class AssetManager {
+    private environments: Map<string, Promise<EnvironmentAsset>> = new Map();
     private characters: Map<string, Promise<CharacterAsset>> = new Map();
 
     private constructor() {
@@ -36,11 +52,19 @@ export class AssetManager {
         // Users will have to wait for these to resolve before they can use the assets
         for (let i = 0; i < ASSETS.length; i++) {
             const assetRef = ASSETS[i];
-            if (assetRef.type === "character") {
+            if (assetRef.type === "environment") {
+                this.environments.set(
+                    assetRef.name,
+                    new Promise((resolve, reject) => {
+                        assetRef.defferedResolve = resolve as typeof assetRef.defferedResolve;
+                        assetRef.defferedReject = reject;
+                    })
+                );
+            } else if (assetRef.type === "character") {
                 this.characters.set(
                     assetRef.name,
                     new Promise((resolve, reject) => {
-                        assetRef.defferedResolve = resolve;
+                        assetRef.defferedResolve = resolve as typeof assetRef.defferedResolve;
                         assetRef.defferedReject = reject;
                     })
                 );
@@ -103,17 +127,25 @@ export class AssetManager {
                         skeleton.name = assetRef.name;
                     });
 
-                    // Find transform node of name Armature
-                    const armature = parent.getChildTransformNodes().find((node) => {
-                        return node.name === "Armature";
-                    });
-                    if (!armature) {
-                        throw new Error("No armature with name \"Armature\" found");
-                    }
 
-                    parent.setEnabled(false);
-
-                    if (assetRef.type === "character") {
+                    if (assetRef.type === "environment") {
+                        parent.setEnabled(true);
+                        assetRef.defferedResolve!({
+                            mesh: parent,
+                        });
+                    } else if (assetRef.type === "character") {
+                        parent.setEnabled(false);
+                        // Find transform node of name Armature
+                        const armature = parent
+                            .getChildTransformNodes()
+                            .find((node) => {
+                                return node.name === "Armature";
+                            });
+                        if (!armature) {
+                            throw new Error(
+                                'No armature with name "Armature" found'
+                            );
+                        }
                         if (result.skeletons.length !== 1) {
                             throw new Error(
                                 "Character must have exactly one skeleton, but found " +
@@ -124,7 +156,7 @@ export class AssetManager {
                         assetRef.defferedResolve!({
                             skeleton: result.skeletons[0],
                             armature: armature,
-                            mesh: parent
+                            mesh: parent,
                         });
                     } else {
                         throw new Error("Unknown asset type: " + assetRef.type);
