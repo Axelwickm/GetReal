@@ -150,7 +150,7 @@ export class XSensXRRig extends HardwareRig {
         }
     }
 
-    networkUpdate(playerState: PlayerSchema, room: Room) {
+    networkUpdate(playerState: PlayerSchema, room: Room, deltaTime: number) {
         // Zip playerState.bonePositions and playerState.boneRotations
         this.boneTransformsRaw = playerState.bonePositions.map(
             (position, index) => {
@@ -163,8 +163,8 @@ export class XSensXRRig extends HardwareRig {
             }
         );
 
-        // Continuous calibration (TODO: probably should do this with deltaT factored in)
-        this.continuousCalibrate(room, 0.04);
+        // Continuous calibration
+        this.continuousCalibrate(room, 1 - Math.pow(0.08, deltaTime));
 
         // Update this.boneTransforms with headToXRPosition and headToXRRotation
         this.boneTransformsTransformed = this.boneTransformsRaw.map(

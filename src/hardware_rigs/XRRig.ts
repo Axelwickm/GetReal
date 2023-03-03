@@ -44,7 +44,7 @@ export class XRRig extends HardwareRig {
 
     }
 
-    networkUpdate(state: PlayerSchema, room: Room) {
+    networkUpdate(state: PlayerSchema, room: Room, deltaTime: number) {
         // Sync camera position to server
         const camera = this.xr.baseExperience.camera;
         const message: PlayerTransformUpdateMessage = {

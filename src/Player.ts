@@ -57,8 +57,11 @@ export class Player {
             }
         };
 
+        let lastTime = Date.now();
         this.addOnChangeCallback(() => {
-            this.rig.networkUpdate(playerState, room);
+            const dt = (Date.now() - lastTime) / 1000;
+            this.rig.networkUpdate(playerState, room, dt);
+            lastTime = Date.now();
         });
 
         playerState.hardwareRig.listen("rigType", () => {

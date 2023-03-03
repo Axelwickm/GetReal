@@ -18,7 +18,7 @@ export abstract class HardwareRig {
         throw new Error("Abstract method not implemented");
     }
 
-    networkUpdate(state: PlayerSchema, room: Room) {
+    networkUpdate(state: PlayerSchema, room: Room, deltaTime: number) {
         // This is called from Player, so no need to add own listeners
         throw new Error("Abstract method not implemented");
     }

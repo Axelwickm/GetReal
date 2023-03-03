@@ -27,7 +27,7 @@ export class NetworkRig extends HardwareRig {
 
     async calibrate(room: Room) {}
 
-    networkUpdate(playerState: PlayerSchema, room: Room) {
+    networkUpdate(playerState: PlayerSchema, room: Room, deltaTime: number) {
         this.cameraTransform = [
             Conversion.schemaToBabylonVector3(playerState.cameraPosition),
             Conversion.schemaToBabylonQuaternion(playerState.cameraRotation),
