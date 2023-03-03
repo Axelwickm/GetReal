@@ -311,17 +311,11 @@ export class XSensReader {
                     msg.subarray(cursor + 28, cursor + 32)
                 );
 
-                // Unity Plugin does this, but seems to give incorrect results
-                // this.boneRotations[i][0] = y;
-                // this.boneRotations[i][1] = -z;
-                // this.boneRotations[i][2] = -x;
-                // this.boneRotations[i][3] = w;
+               this.boneRotations[i][0] = w;
+               this.boneRotations[i][1] = y;
+               this.boneRotations[i][2] = -z;
+               this.boneRotations[i][3] = -x;
 
-                // This is works though
-                this.boneRotations[i][0] = x;
-                this.boneRotations[i][1] = -z;
-                this.boneRotations[i][2] = -y;
-                this.boneRotations[i][3] = w;
             }
 
             cursor += 32;

@@ -34,7 +34,7 @@ export abstract class HardwareRig {
         throw new Error("Abstract method not implemented");
     }
 
-    async calibrate() {
+    async calibrate(room: Room) {
         throw new Error("Abstract method not implemented");
     }
 }

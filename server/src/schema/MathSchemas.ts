@@ -14,12 +14,12 @@ export class Vector3Schema extends Schema {
 }
 
 export class QuaternionSchema extends Schema {
-    @type("number") w: number = 0;
+    @type("number") w: number = 1;
     @type("number") x: number = 0;
     @type("number") y: number = 0;
-    @type("number") z: number = 1;
+    @type("number") z: number = 0;
 
-    constructor(w: number = 0, x: number = 0, y: number = 0, z: number = 1) {
+    constructor(w: number = 1, x: number = 0, y: number = 0, z: number = 0) {
         super();
         this.w = w;
         this.x = x;

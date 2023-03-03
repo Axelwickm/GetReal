@@ -15,6 +15,7 @@ import { NetworkRig } from "./hardware_rigs/NetworkRig";
 
 export class Player {
     scene: Scene;
+    room: Room;
 
     rig: HardwareRig;
 
@@ -32,8 +33,8 @@ export class Player {
     ) {
         this.scene = scene;
         this.avatar = undefined;
+        this.room = room;
 
-        let rig: HardwareRig;
         if (isMe) {
             this.rig = new XRRig(xr); // default
         } else {
@@ -46,7 +47,7 @@ export class Player {
 
         room.send(HardwareRigUpdateMessageType, {
             sessionId: room.sessionId,
-            rigType: this.rig.getRigType()
+            rigType: this.rig.getRigType(),
         });
 
         // Add listeners for player state changes
@@ -58,15 +59,25 @@ export class Player {
 
         this.addOnChangeCallback(() => {
             this.rig.networkUpdate(playerState, room);
-        })
+        });
 
         playerState.hardwareRig.listen("rigType", () => {
             if (isMe) {
-                if (playerState.hardwareRig.rigType === XRRig.getRigType() && this.rig.getRigType() !== XRRig.getRigType()) {
+                if (
+                    playerState.hardwareRig.rigType === XRRig.getRigType() &&
+                    this.rig.getRigType() !== XRRig.getRigType()
+                ) {
                     this.rig = new XRRig(xr);
-                } else if (playerState.hardwareRig.rigType === XSensXRRig.getRigType() && this.rig.getRigType() !== XSensXRRig.getRigType()) {
-                    this.rig = new XSensXRRig(xr);
+                } else if (
+                    playerState.hardwareRig.rigType ===
+                        XSensXRRig.getRigType() &&
+                    this.rig.getRigType() !== XSensXRRig.getRigType()
+                ) {
+                    this.rig = new XSensXRRig(playerState.hardwareRig, xr);
                 }
+
+                this.avatar?.setRig(this.rig);
+                this.debugAvatar?.setRig(this.rig);
             }
         });
 
@@ -80,7 +91,6 @@ export class Player {
                 this.setAvatar(avatarType, playerState.avatar.character);
             }
         });
-
     }
 
     addOnChangeCallback(cb: () => void) {
@@ -96,20 +106,22 @@ export class Player {
         return this.rig.isMe();
     }
 
-    async calibrate() {
-        console.log("Calibrating in 3");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Calibrating in 2");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Calibrating in 1");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await this.rig.calibrate();
+    async calibrate(immediate: boolean) {
+        if (!immediate) {
+            console.log("Calibrating in 3");
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            console.log("Calibrating in 2");
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            console.log("Calibrating in 1");
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        await this.rig.calibrate(this.room);
         await this.avatar?.calibrate();
         await this.debugAvatar?.calibrate();
     }
 
     setAvatar(avatarType?: string, character?: string) {
-        character = "BlueMonsterGirl" // TODO: should not be hardcoded
+        character = "BlueMonsterGirl"; // TODO: should not be hardcoded
         console.log(
             "Setting avatar to " + avatarType + " with character " + character
         );

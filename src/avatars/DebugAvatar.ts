@@ -7,6 +7,7 @@ import { MeshPrimitiveGenerator } from "../PrimitiveGenerator";
 
 export class DebugAvatar extends Avatar {
     cameraCube: Mesh;
+    cameraAxis: Mesh;
     hipCube: Mesh;
 
     boneCubes: Array<Mesh> = [];
@@ -17,6 +18,8 @@ export class DebugAvatar extends Avatar {
         this.cameraCube = MeshPrimitiveGenerator.camera(scene);
         this.cameraCube.setEnabled(!this.rig.isMe());
 
+        this.cameraAxis = MeshPrimitiveGenerator.axes(scene);
+
         this.hipCube = MeshBuilder.CreateBox("box", {}, scene);
         this.hipCube.scaling = new Vector3(0.2, 0.1, 0.1);
         this.hipCube.material = this.scene.getMaterialByName("red")!;
@@ -25,6 +28,9 @@ export class DebugAvatar extends Avatar {
             const boneCube = MeshBuilder.CreateBox("box", {}, scene);
             boneCube.scaling = new Vector3(0.06, 0.03, 0.03);
             boneCube.material = this.scene.getMaterialByName("black")!;
+            let cubeAxis = MeshPrimitiveGenerator.axes(scene);
+            cubeAxis.parent = boneCube;
+            cubeAxis.scaling = new Vector3(2, 2, 2);
             this.boneCubes.push(boneCube);
         }
     }
@@ -44,8 +50,10 @@ export class DebugAvatar extends Avatar {
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
 
-        if (!this.rig.isMe())
+        if (!this.rig.isMe()){
             this.cameraCube.setEnabled(enabled);
+            this.cameraAxis.setEnabled(enabled);
+        }
 
         this.hipCube.setEnabled(enabled);
         for (let i = 0; i < this.boneCubes.length; i++) {
@@ -55,10 +63,15 @@ export class DebugAvatar extends Avatar {
 
     update() {
         const cameraTransform = this.rig.getCameraTransform();
-        this.cameraCube.position = cameraTransform[0];
-        this.cameraCube.rotationQuaternion = cameraTransform[1].multiply(
+        this.cameraCube.position = cameraTransform[0].add(
+            Vector3.Forward().rotateByQuaternionToRef(cameraTransform[1], Vector3.Zero()).scale(0.5)
+        );
+        this.cameraCube.rotationQuaternion = cameraTransform[1].clone().multiply(
             Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2)
         ).multiply(Quaternion.RotationAxis(Vector3.Up(), Math.PI / 4));
+
+        this.cameraAxis.position = cameraTransform[0];
+        this.cameraAxis.rotationQuaternion = cameraTransform[1];
 
         const boneTransforms = this.rig.getBoneTransforms();
         if (boneTransforms.length !== 0) {

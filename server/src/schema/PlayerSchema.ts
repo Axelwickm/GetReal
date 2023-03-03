@@ -35,6 +35,12 @@ export type PlayerTransformUpdateMessage = {
     // Bones are only updated by server
 }
 
+// Events
+export const PlayerCalibrateMessageType = "playerCalibrate";
+export type PlayerCalibrateMessage = {
+    sessionId: string;
+}
+
 export class PlayerSchema extends Schema {
     @type("string") sessionId: string = "undefined";
     @type("string") cookieId: string = "undefined";
@@ -54,7 +60,6 @@ export class PlayerSchema extends Schema {
     @type("number") updateTime: number = 0; // ms
     @type("number") renderTime: number = 0; // ms
     @type(["string"]) errors = new ArraySchema<string>();
-
 
     // Everything below is in World Space
     @type(Vector3Schema) cameraPosition = new Vector3Schema();

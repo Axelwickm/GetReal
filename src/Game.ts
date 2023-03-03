@@ -1,20 +1,25 @@
 import { Player } from "./Player";
 import { AdminMenu } from "./AdminMenu";
-import { HardwareRig } from "./hardware_rigs/HardwareRig";
 import { GetRealSchema } from "./schema/GetRealSchema";
-import { PlayerSchema, PlayerSettingsUpdateMessageType } from "./schema/PlayerSchema";
-
-import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
-import { NetworkRig } from "./hardware_rigs/NetworkRig";
+import {
+    PlayerSchema,
+    PlayerSettingsUpdateMessageType,
+    PlayerCalibrateMessageType,
+    PlayerCalibrateMessage,
+} from "./schema/PlayerSchema";
 
 import { Room } from "colyseus.js";
-import { Scene, WebXRDefaultExperience, Engine } from "@babylonjs/core";
-import { XRRig } from "./hardware_rigs/XRRig";
-
+import {
+    Scene,
+    WebXRDefaultExperience,
+    Engine,
+} from "@babylonjs/core";
 
 export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
+    private aPressed: boolean = false;
+
     private adminMenu: AdminMenu = new AdminMenu(this);
     private players: Map<string, Player> = new Map();
     private room?: Room<GetRealSchema>;
@@ -40,14 +45,12 @@ export class Game {
         ) => {
             console.log("player added!", playerState, sessionId);
             const isMe = sessionId === room.sessionId;
-            
+
             // add player
             this.players.set(
                 sessionId,
                 new Player(playerState, this.scene, room, isMe, this.xr)
             );
-
-            // TODO: message handling for calibrating, clearing, saving
 
             this.adminMenu.registerPlayer(playerState, isMe);
         };
@@ -60,16 +63,25 @@ export class Game {
             this.players.delete(sessionId);
             this.adminMenu.setOffline(playerState);
         };
+
+        this.room.onMessage(
+            PlayerCalibrateMessageType,
+            (message: PlayerCalibrateMessage) => {
+                const player = this.players.get(message.sessionId);
+                if (player?.isMe()) {
+                    player.calibrate(false);
+                }
+            }
+        );
     }
 
     getPlayer(sessionId: string): Player | undefined {
         return this.players.get(sessionId);
     }
 
-    async calibrate() {
+    async calibrate(immediate: boolean = false) {
         for (const player of this.players.values()) {
-            if (player.isMe())
-                await player.calibrate();
+            if (player.isMe()) await player.calibrate(immediate);
         }
     }
 
@@ -99,6 +111,7 @@ export class Game {
         // run the main render loop
         engine.runRenderLoop(async () => {
             let start = Date.now();
+            this.checkXRInput();
             this.update();
             let gameUpdate = Date.now() - start;
             this.scene.render();
@@ -126,5 +139,20 @@ export class Game {
                 renderTime: renderTime,
             });
         }
+    }
+
+    checkXRInput() {
+        // TODO: move this to hw rig
+        this.xr.input.controllers.forEach((controller) => {
+            if (controller.inputSource.handedness === "left") {
+
+            } else if (controller.inputSource.handedness === "right") {
+                //   https://www.w3.org/TR/webxr-gamepads-module-1/
+                const p =
+                    controller.inputSource.gamepad?.buttons[4].pressed;
+                if (p && !this.aPressed) this.calibrate(true);
+                this.aPressed = p ?? false;
+            }
+        });
     }
 }

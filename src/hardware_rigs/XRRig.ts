@@ -39,7 +39,7 @@ export class XRRig extends HardwareRig {
         return []; // Has no bones.
     }
 
-    async calibrate() {
+    async calibrate(room: Room) {
 
     }
 

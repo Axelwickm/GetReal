@@ -3,6 +3,8 @@ import {
     PlayerSchema,
     PlayerSettingsUpdateMessage,
     PlayerSettingsUpdateMessageType,
+    PlayerCalibrateMessageType,
+    PlayerCalibrateMessage,
 } from "./schema/PlayerSchema";
 import {
     RoomSettingsUpdateMessage,
@@ -139,7 +141,7 @@ export class AdminMenu {
             ".performerId"
         ) as HTMLInputElement;
         performerIdElement.addEventListener("click", () => {
-            let id = (parseInt(performerIdElement.innerHTML) + 1 + 1) % 4 - 1;
+            let id = (parseInt(performerIdElement.innerHTML) + 1 + 1) % 2 - 1;
             this.msgPlayerSettings({
                 sessionId: playerState.sessionId,
                 performerId: id
@@ -201,6 +203,15 @@ export class AdminMenu {
             });
         });
 
+        const CalibrateElement = playerElement.querySelector(
+            ".calibrate"
+        ) as HTMLInputElement;
+        CalibrateElement.addEventListener("click", () => {
+            this.msgCalibrate({
+                sessionId: playerState.sessionId,
+            });
+        });
+
         // On player update, update the player element
         this.game.getPlayer(playerState.sessionId)?.addOnChangeCallback(() => {
             this.updatePlayerElement(playerState, playerElement);
@@ -244,6 +255,10 @@ export class AdminMenu {
 
     msgHardwareRig(msg: HardwareRigUpdateMessage) {
         this.room?.send(HardwareRigUpdateMessageType, msg);
+    }
+
+    msgCalibrate(msg: PlayerCalibrateMessage) {
+        this.room?.send(PlayerCalibrateMessageType, msg);
     }
 
     activateElement(element: HTMLElement) {

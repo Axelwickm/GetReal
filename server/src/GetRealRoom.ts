@@ -14,10 +14,19 @@ import {
     PlayerSettingsUpdateMessage,
     PlayerTransformUpdateMessage,
     PlayerTransformUpdateMessageType,
+    PlayerCalibrateMessageType,
+    PlayerCalibrateMessage,
 } from "./schema/PlayerSchema";
 import { XSensReader, XSensData } from "./XSensReader";
-import { AvatarUpdateMessageType, AvatarUpdateMessage } from "./schema/AvatarSchema";
-import { HardwareRigSchema, HardwareRigUpdateMessage, HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
+import {
+    AvatarUpdateMessageType,
+    AvatarUpdateMessage,
+} from "./schema/AvatarSchema";
+import {
+    HardwareRigSchema,
+    HardwareRigUpdateMessage,
+    HardwareRigUpdateMessageType,
+} from "./schema/HardwareRigSchema";
 
 let xSensReaderInstance: XSensReader | null = null;
 export function setXSensReaderInstance(instance: XSensReader) {
@@ -55,22 +64,23 @@ export class GetRealRoom extends Room<GetRealSchema> {
             }
         );
 
-        this.onMessage(HardwareRigUpdateMessageType,
+        this.onMessage(
+            HardwareRigUpdateMessageType,
             (client, message: HardwareRigUpdateMessage) => {
                 this.state.players
                     .get(message.sessionId)
-                    ?.hardwareRig
-                    .updateFromMessage(message);
-            });
+                    ?.hardwareRig.updateFromMessage(message);
+            }
+        );
 
-        this.onMessage(AvatarUpdateMessageType,
+        this.onMessage(
+            AvatarUpdateMessageType,
             (client, message: AvatarUpdateMessage) => {
                 this.state.players
                     .get(message.sessionId)
-                    ?.avatar
-                    .updateFromMessage(message);
-        });
-
+                    ?.avatar.updateFromMessage(message);
+            }
+        );
 
         this.onMessage(
             PlayerTransformUpdateMessageType,
@@ -88,12 +98,22 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 }
             }
         );
+
+        // Events
+        this.onMessage(
+            PlayerCalibrateMessageType,
+            (client, message: PlayerCalibrateMessage) => {
+                console.log("Calibrating player", message.sessionId);
+                this.broadcast(PlayerCalibrateMessageType, message);
+            }
+        );
     }
 
     setPerformerXSensData(performerId: number | undefined, data: XSensData) {
         // If performerId is undefined, set the data for all performers
         this.state.players.forEach((player, sessionId) => {
             if (
+                player.hardwareRig.rigType === "xsens_xr" &&
                 player.performerId === performerId ||
                 (performerId === undefined && player.performerId !== -1)
             ) {

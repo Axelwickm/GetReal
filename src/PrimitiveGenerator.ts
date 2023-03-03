@@ -1,5 +1,8 @@
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import { Scene } from "@babylonjs/core/scene";
+import { Scene  } from "@babylonjs/core/scene";
+import { Color4 } from "@babylonjs/core/Maths/math.color";
+import { Mesh } from "@babylonjs/core";
 
 
 export namespace MeshPrimitiveGenerator {
@@ -21,6 +24,49 @@ export namespace MeshPrimitiveGenerator {
         }
 
         return camera;
+    }
+
+    export function axes(scene: Scene) {
+        const x = MeshBuilder.CreateLines("x", {
+            points: [
+                new Vector3(0, 0, 0),
+                new Vector3(1, 0, 0),
+            ],
+            colors: [
+                new Color4(1, 0, 0, 1),
+                new Color4(1, 0, 0, 1),
+            ],
+        }, scene);
+
+        const y = MeshBuilder.CreateLines("y", {
+            points: [
+                new Vector3(0, 0, 0),
+                new Vector3(0, 1, 0),
+            ],
+            colors: [
+                new Color4(0, 1, 0, 1),
+                new Color4(0, 1, 0, 1),
+            ],
+        }, scene);
+
+        const z = MeshBuilder.CreateLines("z", {
+            points: [
+                new Vector3(0, 0, 0),
+                new Vector3(0, 0, 1),
+            ],
+            colors: [
+                new Color4(0, 0, 1, 1),
+                new Color4(0, 0, 1, 1),
+            ],
+        }, scene);
+
+        const container = new Mesh("axes", scene);
+        x.parent = container;
+        y.parent = container;
+        z.parent = container;
+
+        return container;
+
     }
 }
 

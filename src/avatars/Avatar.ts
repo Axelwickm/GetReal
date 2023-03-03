@@ -17,6 +17,9 @@ export class Avatar {
         throw new Error("Abstract method not implemented");
     }
 
+    setRig(rig: HardwareRig) {
+        this.rig = rig;
+    }
 
     getAvatarType(): string {
         throw new Error("Abstract method not implemented");

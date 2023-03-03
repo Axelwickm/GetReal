@@ -115,14 +115,6 @@ class App {
             }
         });
 
-        // Find calibrate listener and have it call game.calibrate()
-        const calibrateButton = document.getElementById("calibrate");
-        if (calibrateButton) {
-            calibrateButton.addEventListener("click", () => {
-                game.calibrate(); // Async
-            });
-        }
-
         game.run(engine);
        
     }
