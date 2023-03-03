@@ -12,6 +12,7 @@ import {
 import { Room } from "colyseus.js";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 import { WebXRDefaultExperience } from "@babylonjs/core";
+import { Conversion } from "../Conversion";
 
 // TODO: put this in a separate file
 const HEAD_BONE = 6;
@@ -119,28 +120,18 @@ export class XSensXRRig extends HardwareRig {
             room.send(HardwareRigUpdateMessageType, {
                 sessionId: room.sessionId,
                 rigType: this.getRigType(),
-                // TODO: do conversion with utility functions
-                headToXRPosition: [
-                    this.headToXRPosition.x,
-                    this.headToXRPosition.y,
-                    this.headToXRPosition.z,
-                ],
-                headToXRRotation: [
-                    this.headToXRRotation.w,
-                    this.headToXRRotation.x,
-                    this.headToXRRotation.y,
-                    this.headToXRRotation.z,
-                ],
-                headToXROffset: [
-                    this.headToXROffset.x,
-                    this.headToXROffset.y,
-                    this.headToXROffset.z,
-                ],
-                origoToXRPosition: [
-                    this.origoToXRPosition.x,
-                    this.origoToXRPosition.y,
-                    this.origoToXRPosition.z,
-                ],
+                headToXRPosition: Conversion.babylonToMessageVector3(
+                    this.headToXRPosition
+                ),
+                headToXRRotation: Conversion.babylonToMessageQuaternion(
+                    this.headToXRRotation
+                ),
+                headToXROffset: Conversion.babylonToMessageVector3(
+                    this.headToXROffset
+                ),
+                origoToXRPosition: Conversion.babylonToMessageVector3(
+                    this.origoToXRPosition
+                ),
             });
         }
     }
@@ -164,12 +155,9 @@ export class XSensXRRig extends HardwareRig {
         this.boneTransformsRaw = playerState.bonePositions.map(
             (position, index) => {
                 return [
-                    new Vector3(position.x, position.y, position.z),
-                    new Quaternion(
-                        playerState.boneRotations[index].x,
-                        playerState.boneRotations[index].y,
-                        playerState.boneRotations[index].z,
-                        playerState.boneRotations[index].w // This order is sooo dangerous
+                    Conversion.schemaToBabylonVector3(position),
+                    Conversion.schemaToBabylonQuaternion(
+                        playerState.boneRotations[index]
                     ),
                 ];
             }
@@ -199,18 +187,12 @@ export class XSensXRRig extends HardwareRig {
         const camera = this.xr.baseExperience.camera;
         const message: PlayerTransformUpdateMessage = {
             sessionId: room.sessionId,
-            cameraPosition: [
-                camera.position.x,
-                camera.position.y,
-                camera.position.z,
-            ],
-            cameraRotation: [
-                camera.rotationQuaternion.w, // Again, watch the order
-                camera.rotationQuaternion.x,
-                camera.rotationQuaternion.y,
-                camera.rotationQuaternion.z,
-            ],
+            cameraPosition: Conversion.babylonToMessageVector3(camera.position),
+            cameraRotation: Conversion.babylonToMessageQuaternion(
+                camera.rotationQuaternion
+            ),
         };
+
         room.send(PlayerTransformUpdateMessageType, message);
     }
 }

@@ -8,6 +8,7 @@ import { HardwareRig } from "./HardwareRig";
 import { Room } from "colyseus.js";
 import { WebXRDefaultExperience } from "@babylonjs/core";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
+import { Conversion } from "../Conversion";
 
 export class XRRig extends HardwareRig {
     xr: WebXRDefaultExperience;
@@ -48,17 +49,8 @@ export class XRRig extends HardwareRig {
         const camera = this.xr.baseExperience.camera;
         const message: PlayerTransformUpdateMessage = {
             sessionId: room.sessionId,
-            cameraPosition: [
-                camera.position.x,
-                camera.position.y,
-                camera.position.z,
-            ],
-            cameraRotation: [
-                camera.rotationQuaternion.w,
-                camera.rotationQuaternion.x,
-                camera.rotationQuaternion.y,
-                camera.rotationQuaternion.z,
-            ],
+            cameraPosition: Conversion.babylonToMessageVector3(camera.position), 
+            cameraRotation: Conversion.babylonToMessageQuaternion(camera.rotationQuaternion),
         };
         room.send(PlayerTransformUpdateMessageType, message);
     }
