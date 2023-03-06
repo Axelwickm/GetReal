@@ -6,6 +6,7 @@ export type RoomSettingsUpdateMessage = {
     spatialSoundMode?: SpatialSoundMode;
     audienceTeleportationMode?: AudienceTeleportationMode;
     nonAdminEnterVRImmediatelyMode?: NonAdminEnterVRImmediatelyMode;
+    environment?: string;
 }
 
 export enum SoundMode {
@@ -35,6 +36,7 @@ export class RoomSettingsSchema extends Schema {
     @type("string") spatialSoundMode: SpatialSoundMode = SpatialSoundMode.Spatial;
     @type("string") audienceTeleportationMode: AudienceTeleportationMode = AudienceTeleportationMode.On;
     @type("string") nonAdminEnterVRImmediatelyMode: NonAdminEnterVRImmediatelyMode = NonAdminEnterVRImmediatelyMode.Off;
+    @type("string") environment: string = "Lobbys";
 
     updateFromMessage(message: RoomSettingsUpdateMessage) {
         if (message.soundMode !== undefined) {
@@ -48,6 +50,9 @@ export class RoomSettingsSchema extends Schema {
         }
         if (message.nonAdminEnterVRImmediatelyMode !== undefined) {
             this.nonAdminEnterVRImmediatelyMode = message.nonAdminEnterVRImmediatelyMode;
+        }
+        if (message.environment !== undefined) {
+            this.environment = message.environment;
         }
     }
 }

@@ -43,6 +43,9 @@ export class AdminMenu {
     elements: Map<string, HTMLDivElement> = new Map();
     playerElements: Map<string, HTMLDivElement> = new Map();
 
+    startTime: number = Date.now();
+    environmentStartTime: number = Date.now();
+
     constructor(game: Game) {
         this.game = game;
 
@@ -70,6 +73,23 @@ export class AdminMenu {
         windowControl.addEventListener("click", () => {
             this.adminMenuElement.classList.toggle("minimized");
         });
+
+        const toMMSS = (seconds: number) => {
+            const minutes = Math.floor(seconds / 60);
+            seconds = Math.floor(seconds % 60);
+            return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+        };
+
+        // eveny second, update the times
+        setInterval(() => {
+            if (this.enabled) {
+                const now = Date.now();
+                const e = this.getElement("#totalTime");
+                e.innerText = toMMSS((now - this.startTime) / 1000);
+                const e2 = this.getElement("#environmentTime");
+                e2.innerText = toMMSS((now - this.environmentStartTime) / 1000);
+            }
+        }, 1000);
 
         this.hide();
     }
@@ -139,6 +159,10 @@ export class AdminMenu {
                 this.setNonAdminEnterVRImmediatelyMode(mode);
             }
         );
+
+        this.room.state.room.listen("environment", (environment: string) => {
+            this.setScene(environment);
+        });
     }
 
     registerPlayer(playerState: PlayerSchema, isMe: boolean) {
@@ -263,7 +287,11 @@ export class AdminMenu {
 
         playerState.avatar.onChange = () => {
             if (this.enabled)
-                this.updateAvatarElement(playerState.sessionId, playerState.avatar, playerElement);
+                this.updateAvatarElement(
+                    playerState.sessionId,
+                    playerState.avatar,
+                    playerElement
+                );
         };
 
         playerState.hardwareRig.onChange = () => {
@@ -469,6 +497,35 @@ export class AdminMenu {
         }
     }
 
+    setScene(environment: string) {
+        const lobbys = this.getElement("#environmentLobbys");
+        const warehouse = this.getElement("#environmentWarehouse");
+
+        if (environment === "Lobbys") {
+            this.activateElement(lobbys);
+        } else if (environment === "Warehouse") {
+            this.activateElement(warehouse);
+        } else {
+            throw new Error("Unhandled environment: " + environment);
+        }
+
+        if (!lobbys.onclick) {
+            lobbys.onclick = () => {
+                this.msgRoomSettings({ environment: "Lobbys" });
+            };
+        }
+
+        if (!warehouse.onclick) {
+            warehouse.onclick = () => {
+                this.msgRoomSettings({ environment: "Warehouse" });
+            };
+        }
+
+        this.environmentStartTime = Date.now();
+        const currentScene = this.getElement("#currentScene");
+        currentScene.innerHTML = environment;
+    }
+
     updatePlayerElement(player: PlayerSchema) {
         const sid = player.sessionId;
         const sessionIdElement = this.getPlayerElement(sid, ".sessionId");
@@ -520,10 +577,17 @@ export class AdminMenu {
         renderTimeElement.innerHTML = String(player.renderTime);
     }
 
-    updateAvatarElement(sessionId: string, avatar: AvatarSchema, element: HTMLElement) {
+    updateAvatarElement(
+        sessionId: string,
+        avatar: AvatarSchema,
+        element: HTMLElement
+    ) {
         const noAvatar = this.getPlayerElement(sessionId, ".noAvatar");
-        const simpleAvatar = this.getPlayerElement(sessionId, ".simpleAvatar"); 
-        const fullBodyAvatar = this.getPlayerElement(sessionId, ".fullBodyAvatar"); 
+        const simpleAvatar = this.getPlayerElement(sessionId, ".simpleAvatar");
+        const fullBodyAvatar = this.getPlayerElement(
+            sessionId,
+            ".fullBodyAvatar"
+        );
 
         if (avatar.avatarType === "undefined") {
             this.activateElement(noAvatar);

@@ -22,6 +22,11 @@ type AssetRef = {
 const CONCURRENT_LOADS = 4;
 const ASSETS: Array<AssetRef> = [
     {
+        name: "Lobbys",
+        path: "Environments/Lobbys.glb",
+        type: "environment",
+    },
+    {
         name: "Warehouse",
         path: "Environments/Warehouse.glb",
         type: "environment",
@@ -56,7 +61,8 @@ export class AssetManager {
                 this.environments.set(
                     assetRef.name,
                     new Promise((resolve, reject) => {
-                        assetRef.defferedResolve = resolve as typeof assetRef.defferedResolve;
+                        assetRef.defferedResolve =
+                            resolve as typeof assetRef.defferedResolve;
                         assetRef.defferedReject = reject;
                     })
                 );
@@ -64,7 +70,8 @@ export class AssetManager {
                 this.characters.set(
                     assetRef.name,
                     new Promise((resolve, reject) => {
-                        assetRef.defferedResolve = resolve as typeof assetRef.defferedResolve;
+                        assetRef.defferedResolve =
+                            resolve as typeof assetRef.defferedResolve;
                         assetRef.defferedReject = reject;
                     })
                 );
@@ -94,6 +101,18 @@ export class AssetManager {
         return character;
     }
 
+    getEnvironmentOptions(): Array<string> {
+        return Array.from(this.environments.keys());
+    }
+
+    async getEnvironment(name: string): Promise<EnvironmentAsset> {
+        const environment = this.environments.get(name);
+        if (!environment) {
+            throw new Error("Environment not found: " + name);
+        }
+        return environment;
+    }
+
     async loadAssets(scene: Scene) {
         const startTime = Date.now();
 
@@ -114,9 +133,11 @@ export class AssetManager {
             )
                 .then((result) => {
                     if (assetRef.type === "environment") {
-                        assetRef.defferedResolve!({
+                        const environmentAsset : EnvironmentAsset = {
                             meshes: result.meshes,
-                        });
+                        }
+                        AssetManager.setEnabled(environmentAsset, false);
+                        assetRef.defferedResolve!(environmentAsset);
                     } else if (assetRef.type === "character") {
                         result.particleSystems.forEach((ps) => {
                             ps.stop();
@@ -132,8 +153,6 @@ export class AssetManager {
                             skeleton.name = assetRef.name;
                         });
 
-
-                        parent.setEnabled(false);
                         // Find transform node of name Armature
                         const armature = parent
                             .getChildTransformNodes()
@@ -152,11 +171,15 @@ export class AssetManager {
                             );
                         }
 
-                        assetRef.defferedResolve!({
+                        const characterAsset : CharacterAsset = {
                             skeleton: result.skeletons[0],
                             armature: armature,
                             mesh: parent,
-                        });
+                        }
+
+                        AssetManager.setEnabled(characterAsset, false);
+                        assetRef.defferedResolve!(characterAsset);
+
                     } else {
                         throw new Error("Unknown asset type: " + assetRef.type);
                     }
@@ -178,5 +201,25 @@ export class AssetManager {
 
         const timeToLoad = (Date.now() - startTime) / 1000;
         console.log("Loaded all assets in " + timeToLoad + " seconds");
+    }
+
+    static setEnabled(asset: CharacterAsset | EnvironmentAsset, enabled: boolean) {
+        if ("meshes" in asset) {
+            asset.meshes.forEach((mesh) => {
+                mesh.setEnabled(enabled);
+            });
+        }
+
+        if ("mesh" in asset) {
+            asset.mesh.setEnabled(enabled);
+        }
+
+        if ("skeleton" in asset) {
+
+        }
+
+        if ("armature" in asset) {
+            asset.armature.setEnabled(enabled);
+        }
     }
 }

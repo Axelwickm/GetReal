@@ -13,7 +13,11 @@ import {
     Scene,
     WebXRDefaultExperience,
     Engine,
+    Animation,
+    AnimationGroup,
 } from "@babylonjs/core";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
 export class Game {
     private scene: Scene;
@@ -23,6 +27,10 @@ export class Game {
     private adminMenu: AdminMenu = new AdminMenu(this);
     private players: Map<string, Player> = new Map();
     private room?: Room<GetRealSchema>;
+
+    private environmentName?: string = undefined;
+    private environment?: EnvironmentAsset;
+
     private debugMode: boolean = false;
 
     constructor(scene: Scene, xr: WebXRDefaultExperience) {
@@ -31,12 +39,11 @@ export class Game {
     }
 
     setRoom(room: Room<GetRealSchema>) {
-        if (this.room) {
-            throw new Error("Room already set");
-        }
+        if (this.room) throw new Error("Room already set");
 
         this.room = room;
         this.adminMenu.setRoom(room);
+        this.environmentName = room.state.room.environment;
 
         // Watch for incoming network changes
         room.state.players.onAdd = (
@@ -71,6 +78,13 @@ export class Game {
                 if (player?.isMe()) {
                     player.calibrate(false);
                 }
+            }
+        );
+
+        this.room.state.room.listen(
+            "environment",
+            (environmentName: string) => {
+                this.setEnvironment(environmentName);
             }
         );
     }
@@ -145,14 +159,82 @@ export class Game {
         // TODO: move this to hw rig
         this.xr.input.controllers.forEach((controller) => {
             if (controller.inputSource.handedness === "left") {
-
             } else if (controller.inputSource.handedness === "right") {
                 //   https://www.w3.org/TR/webxr-gamepads-module-1/
-                const p =
-                    controller.inputSource.gamepad?.buttons[4].pressed;
+                const p = controller.inputSource.gamepad?.buttons[4].pressed;
                 if (p && !this.aPressed) this.calibrate(true);
                 this.aPressed = p ?? false;
             }
         });
+    }
+
+    async setEnvironment(environment: string) {
+        const oldEnvironmentName = this.environmentName;
+        this.environmentName = environment;
+        console.log(
+            "Environment set to",
+            this.environmentName,
+            "from",
+            oldEnvironmentName
+        );
+
+        const assetManager = AssetManager.getInstance();
+
+        if (this.environmentName === "Lobbys" && false) {
+            // No animation since first
+        } else if (
+            this.environmentName === "Warehouse" &&
+            oldEnvironmentName === "Lobbys"
+        ) {
+            const oldEnvironment = this.environment;
+            this.environment = await assetManager.getEnvironment(
+                this.environmentName
+            );
+            AssetManager.setEnabled(this.environment, true);
+
+            // Animate scale
+            const anim = new Animation(
+                "oldEnvironmentOut",
+                "scaling",
+                60,
+                Animation.ANIMATIONTYPE_VECTOR3,
+                Animation.ANIMATIONLOOPMODE_CONSTANT
+            );
+
+            anim.setKeys([
+                {
+                    frame: 0,
+                    value: new Vector3(1, 1, 1),
+                },
+                {
+                    frame: 60,
+                    value: new Vector3(10, 10, 10),
+                },
+            ]);
+
+            const animationGroup = new AnimationGroup("oldEnvironmentOutGroup");
+            for (const mesh of oldEnvironment!.meshes) {
+                animationGroup.addTargetedAnimation(anim, mesh);
+            }
+            animationGroup.normalize(0, 60);
+            animationGroup.play(true);
+            // When done, disable old environment
+            animationGroup.onAnimationGroupLoopObservable.add(() => {
+                animationGroup.reset();
+                animationGroup.stop();
+                AssetManager.setEnabled(oldEnvironment!, false);
+                animationGroup.dispose();
+            });
+        } else {
+            // No animation, since this is the first scene
+            if (this.environment)
+                AssetManager.setEnabled(this.environment, false);
+
+            this.environment = await assetManager.getEnvironment(
+                this.environmentName
+            );
+
+            AssetManager.setEnabled(this.environment, true);
+        }
     }
 }
