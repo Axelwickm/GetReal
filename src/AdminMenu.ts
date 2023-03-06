@@ -18,8 +18,16 @@ import {
 import { Room } from "colyseus.js";
 import { SimpleAvatar } from "./avatars/SimpleAvatar";
 import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
-import { AvatarSchema, AvatarUpdateMessage, AvatarUpdateMessageType } from "./schema/AvatarSchema";
-import { HardwareRigSchema, HardwareRigUpdateMessage, HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
+import {
+    AvatarSchema,
+    AvatarUpdateMessage,
+    AvatarUpdateMessageType,
+} from "./schema/AvatarSchema";
+import {
+    HardwareRigSchema,
+    HardwareRigUpdateMessage,
+    HardwareRigUpdateMessageType,
+} from "./schema/HardwareRigSchema";
 import { XRRig } from "./hardware_rigs/XRRig";
 import { XSensXRRig } from "./hardware_rigs/XSensXRRig";
 import { Game } from "./Game";
@@ -31,6 +39,9 @@ export class AdminMenu {
     game: Game;
     room?: Room<GetRealSchema>;
     players: Map<string, PlayerSchema> = new Map();
+    enabled: boolean = false;
+    elements: Map<string, HTMLDivElement> = new Map();
+    playerElements: Map<string, HTMLDivElement> = new Map();
 
     constructor(game: Game) {
         this.game = game;
@@ -59,14 +70,46 @@ export class AdminMenu {
         windowControl.addEventListener("click", () => {
             this.adminMenuElement.classList.toggle("minimized");
         });
+
+        this.hide();
+    }
+
+    getElement(selector: string) {
+        let element = this.elements.get(selector);
+        if (!element) {
+            element = this.adminMenuElement.querySelector(
+                selector
+            ) as HTMLDivElement;
+            if (!element) {
+                throw new Error(`Could not find element ${selector}`);
+            }
+            this.elements.set(selector, element);
+        }
+        return element;
+    }
+
+    getPlayerElement(playerId: string, selector: string) {
+        let element = this.playerElements.get(playerId + selector);
+        if (!element) {
+            element = this.adminMenuElement.querySelector(
+                "#player_" + playerId + " " + selector
+            ) as HTMLDivElement;
+            if (!element) {
+                throw new Error(`Could not find element ${selector}`);
+            }
+            this.playerElements.set(playerId + selector, element);
+        }
+        return element;
     }
 
     show() {
         this.adminMenuElement.style.display = "block";
+        this.enabled = true;
     }
 
     hide() {
         this.adminMenuElement.style.display = "none";
+        this.enabled = false;
     }
 
     setRoom(room: Room<GetRealSchema>) {
@@ -101,7 +144,7 @@ export class AdminMenu {
     registerPlayer(playerState: PlayerSchema, isMe: boolean) {
         this.players.set(playerState.cookieId, playerState);
         let playerElement = this.playersElement.querySelector(
-            "#main_player"
+            ".mainPlayer"
         ) as HTMLDivElement;
         if (!playerElement) {
             throw new Error("Could not find main player element");
@@ -110,9 +153,11 @@ export class AdminMenu {
         if (!isMe) {
             // Make copy of first player element
             playerElement = playerElement.cloneNode(true) as HTMLDivElement;
-            playerElement.id = "player_" + playerState.cookieId;
+            playerElement.className = "";
             this.playersElement.appendChild(playerElement);
         }
+
+        playerElement.id = "player_" + playerState.sessionId;
 
         // Show menu if it's me and I am admin
         playerState.listen("isAdmin", (isAdmin: boolean) => {
@@ -141,13 +186,12 @@ export class AdminMenu {
             ".performerId"
         ) as HTMLInputElement;
         performerIdElement.addEventListener("click", () => {
-            let id = (parseInt(performerIdElement.innerHTML) + 1 + 1) % 2 - 1;
+            let id = ((parseInt(performerIdElement.innerHTML) + 1 + 1) % 2) - 1;
             this.msgPlayerSettings({
                 sessionId: playerState.sessionId,
-                performerId: id
+                performerId: id,
             });
         });
-
 
         // Avatar changes
         const noAvatar = playerElement.querySelector(
@@ -163,21 +207,21 @@ export class AdminMenu {
         noAvatar.addEventListener("click", () => {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
-                avatarType: "undefined"
+                avatarType: "undefined",
             });
         });
 
         simpleAvatar.addEventListener("click", () => {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
-                avatarType: SimpleAvatar.getAvatarType()
+                avatarType: SimpleAvatar.getAvatarType(),
             });
         });
 
         fullBodyAvatar.addEventListener("click", () => {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
-                avatarType: FullBodyAvatar.getAvatarType()
+                avatarType: FullBodyAvatar.getAvatarType(),
             });
         });
 
@@ -192,14 +236,14 @@ export class AdminMenu {
         XRRigElement.addEventListener("click", () => {
             this.msgHardwareRig({
                 sessionId: playerState.sessionId,
-                rigType: XRRig.getRigType()
+                rigType: XRRig.getRigType(),
             });
         });
 
         XSensXRElement.addEventListener("click", () => {
             this.msgHardwareRig({
                 sessionId: playerState.sessionId,
-                rigType: XSensXRRig.getRigType()
+                rigType: XSensXRRig.getRigType(),
             });
         });
 
@@ -214,16 +258,22 @@ export class AdminMenu {
 
         // On player update, update the player element
         this.game.getPlayer(playerState.sessionId)?.addOnChangeCallback(() => {
-            this.updatePlayerElement(playerState, playerElement);
+            if (this.enabled) this.updatePlayerElement(playerState);
         });
 
         playerState.avatar.onChange = () => {
-            this.updateAvatarElement(playerState.avatar, playerElement);
-        }
+            if (this.enabled)
+                this.updateAvatarElement(playerState.sessionId, playerState.avatar, playerElement);
+        };
 
         playerState.hardwareRig.onChange = () => {
-            this.updateHardwareRigElement(playerState.hardwareRig, playerElement);
-        }
+            if (this.enabled)
+                this.updateHardwareRigElement(
+                    playerState.sessionId,
+                    playerState.hardwareRig,
+                    playerElement
+                );
+        };
     }
 
     unregisterPlayer(player: PlayerSchema) {
@@ -277,18 +327,10 @@ export class AdminMenu {
 
     setSoundMode(soundMode: string) {
         // allSound, performerSound, audienceSound, noneSound
-        const allSoundModeElement = this.adminMenuElement.querySelector(
-            "#allSound"
-        ) as HTMLInputElement;
-        const performerSoundModeElement = this.adminMenuElement.querySelector(
-            "#performersSound"
-        ) as HTMLInputElement;
-        const audienceSoundModeElement = this.adminMenuElement.querySelector(
-            "#audienceSound"
-        ) as HTMLInputElement;
-        const noneSoundModeElement = this.adminMenuElement.querySelector(
-            "#noneSound"
-        ) as HTMLInputElement;
+        const allSoundModeElement = this.getElement("#allSound");
+        const performerSoundModeElement = this.getElement("#performersSound");
+        const audienceSoundModeElement = this.getElement("#audienceSound");
+        const noneSoundModeElement = this.getElement("#noneSound");
 
         if (soundMode === "all") {
             this.activateElement(allSoundModeElement);
@@ -330,12 +372,8 @@ export class AdminMenu {
 
     setSpatialSoundMode(soundMode: string) {
         // spatialSound, globalSound
-        const spatialSoundModeElement = this.adminMenuElement.querySelector(
-            "#spatialSound"
-        ) as HTMLInputElement;
-        const globalSoundModeElement = this.adminMenuElement.querySelector(
-            "#globalSound"
-        ) as HTMLInputElement;
+        const spatialSoundModeElement = this.getElement("#spatialSound");
+        const globalSoundModeElement = this.getElement("#globalSound");
 
         if (soundMode === "spatial") {
             this.activateElement(spatialSoundModeElement);
@@ -364,14 +402,12 @@ export class AdminMenu {
 
     setAudienceTeleportationMode(mode: string) {
         // audienceTeleportation, audienceNoTeleportation
-        const audienceTeleportationModeElement =
-            this.adminMenuElement.querySelector(
-                "#audienceTeleportationOn"
-            ) as HTMLInputElement;
-        const audienceNoTeleportationModeElement =
-            this.adminMenuElement.querySelector(
-                "#audienceTeleportationOff"
-            ) as HTMLInputElement;
+        const audienceTeleportationModeElement = this.getElement(
+            "#audienceTeleportationOn"
+        );
+        const audienceNoTeleportationModeElement = this.getElement(
+            "#audienceTeleportationOff"
+        );
 
         if (mode === "on") {
             this.activateElement(audienceTeleportationModeElement);
@@ -401,13 +437,10 @@ export class AdminMenu {
     setNonAdminEnterVRImmediatelyMode(mode: string) {
         // nonAdminEnterVROn, nonAdminEnterVROff
         const nonAdminEnterVROnModeElement =
-            this.adminMenuElement.querySelector(
-                "#nonAdminEnterVROn"
-            ) as HTMLInputElement;
-        const nonAdminEnterVROffModeElement =
-            this.adminMenuElement.querySelector(
-                "#nonAdminEnterVROff"
-            ) as HTMLInputElement;
+            this.getElement("#nonAdminEnterVROn");
+        const nonAdminEnterVROffModeElement = this.getElement(
+            "#nonAdminEnterVROff"
+        );
 
         if (mode === "on") {
             this.activateElement(nonAdminEnterVROnModeElement);
@@ -436,73 +469,61 @@ export class AdminMenu {
         }
     }
 
-    updatePlayerElement(player: PlayerSchema, element: HTMLElement) {
-        const sessionIdElement = element.querySelector(
-            ".session_id"
-        ) as HTMLInputElement;
+    updatePlayerElement(player: PlayerSchema) {
+        const sid = player.sessionId;
+        const sessionIdElement = this.getPlayerElement(sid, ".sessionId");
         sessionIdElement.innerHTML = player.sessionId;
 
-        const cookieIdElement = element.querySelector(
-            ".cookie_id"
-        ) as HTMLInputElement;
+        const cookieIdElement = this.getPlayerElement(sid, ".cookieId");
         cookieIdElement.innerHTML = player.cookieId;
 
-        const performerIdElement = element.querySelector(
-            ".performerId"
-        ) as HTMLInputElement;
+        const performerIdElement = this.getPlayerElement(sid, ".performerId");
         performerIdElement.innerHTML = String(player.performerId);
 
-        const adminElement = element.querySelector(
-            ".isAdmin"
-        ) as HTMLInputElement;
+        const adminElement = this.getPlayerElement(sid, ".isAdmin");
         adminElement.innerHTML = player.isAdmin ? "admin" : "regular";
+
         if (player.isAdmin) {
             adminElement.classList.add("admin");
         } else {
             adminElement.classList.remove("admin");
         }
 
-        const headsetBatteryLevelElement = element.querySelector(
+        const headsetBatteryLevelElement = this.getPlayerElement(
+            sid,
             ".headsetBatteryLevel"
-        ) as HTMLInputElement;
+        );
         // TODO
-        
-        const leftControllerBatteryLevelElement = element.querySelector(
+
+        const leftControllerBatteryLevelElement = this.getPlayerElement(
+            sid,
             ".leftControllerBatteryLevel"
-        ) as HTMLInputElement;
+        );
         // TODO
-        
-        const rightControllerBatteryLevelElement = element.querySelector(
+
+        const rightControllerBatteryLevelElement = this.getPlayerElement(
+            sid,
             ".rightControllerBatteryLevel"
-        ) as HTMLInputElement;
+        );
         // TODO
-        
-        const fpsElement = element.querySelector(
-            ".fps"
-        ) as HTMLInputElement;
+
+        const fpsElement = this.getPlayerElement(sid, ".fps");
         fpsElement.innerHTML = String(player.fps);
 
-        const updateTimeElement = element.querySelector(
+        const updateTimeElement = this.getPlayerElement(
+            sid,
             ".updateTime"
         ) as HTMLInputElement;
         updateTimeElement.innerHTML = String(player.updateTime);
 
-        const renderTimeElement = element.querySelector(
-            ".renderTime"
-        ) as HTMLInputElement;
+        const renderTimeElement = this.getPlayerElement(sid, ".renderTime");
         renderTimeElement.innerHTML = String(player.renderTime);
     }
 
-    updateAvatarElement(avatar: AvatarSchema, element: HTMLElement) {
-        const noAvatar = element.querySelector(
-            ".noAvatar"
-        ) as HTMLInputElement;
-        const simpleAvatar = element.querySelector(
-            ".simpleAvatar"
-        ) as HTMLInputElement;
-        const fullBodyAvatar = element.querySelector(
-            ".fullBodyAvatar"
-        ) as HTMLInputElement;
+    updateAvatarElement(sessionId: string, avatar: AvatarSchema, element: HTMLElement) {
+        const noAvatar = this.getPlayerElement(sessionId, ".noAvatar");
+        const simpleAvatar = this.getPlayerElement(sessionId, ".simpleAvatar"); 
+        const fullBodyAvatar = this.getPlayerElement(sessionId, ".fullBodyAvatar"); 
 
         if (avatar.avatarType === "undefined") {
             this.activateElement(noAvatar);
@@ -515,17 +536,17 @@ export class AdminMenu {
         }
     }
 
-    updateHardwareRigElement(hardwareRig: HardwareRigSchema, element: HTMLElement) {
-        const xr = element.querySelector(
-            ".XR"
-        ) as HTMLInputElement;
-        const xsensXr = element.querySelector(
-            ".XSensXR"
-        ) as HTMLInputElement;
+    updateHardwareRigElement(
+        sessionId: string,
+        hardwareRig: HardwareRigSchema,
+        element: HTMLElement
+    ) {
+        const xr = this.getPlayerElement(sessionId, ".XR");
+        const xsensXr = this.getPlayerElement(sessionId, ".XSensXR");
 
         if (hardwareRig.rigType === XRRig.getRigType()) {
             this.activateElement(xr);
-        } else if(hardwareRig.rigType === XSensXRRig.getRigType()) {
+        } else if (hardwareRig.rigType === XSensXRRig.getRigType()) {
             this.activateElement(xsensXr);
         }
     }
