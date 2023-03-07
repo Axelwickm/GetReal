@@ -4,6 +4,9 @@ import {
     Skeleton,
     AbstractMesh,
     TransformNode,
+    AnimationGroup,
+    VertexBuffer,
+    ISceneLoaderAsyncResult,
 } from "@babylonjs/core";
 
 /*
@@ -15,6 +18,7 @@ type AssetRef = {
     name: string;
     path: string;
     type: "character" | "environment";
+    rhs: boolean;
     defferedResolve?: (value: CharacterAsset | EnvironmentAsset) => void;
     defferedReject?: (reason?: any) => void;
 };
@@ -25,16 +29,19 @@ const ASSETS: Array<AssetRef> = [
         name: "Lobbys",
         path: "Environments/Lobbys.glb",
         type: "environment",
+        rhs: true,
     },
     {
         name: "Warehouse",
         path: "Environments/Warehouse.glb",
         type: "environment",
+        rhs: true,
     },
     {
         name: "BlueMonsterGirl",
         path: "FullBodyAvatars/BlueMonsterGirl.glb",
         type: "character",
+        rhs: false, // Actually, this currenly is, but this messes with the rigging. TODO: convert to LHS properly
     },
 ];
 
@@ -46,6 +53,7 @@ export type CharacterAsset = {
     skeleton: Skeleton;
     armature: TransformNode; // For some reason, this is what we need to change
     mesh: AbstractMesh;
+    animationGroups: Array<AnimationGroup>;
 };
 
 export class AssetManager {
@@ -132,21 +140,38 @@ export class AssetManager {
                 scene
             )
                 .then((result) => {
-                    if (assetRef.type === "environment") {
-                        const environmentAsset : EnvironmentAsset = {
-                            meshes: result.meshes,
+                    const parent = new AbstractMesh(assetRef.name, scene);
+
+                    // Find and destroy __root__
+                    const root = result.meshes.find((mesh) => {
+                        return mesh.name === "__root__";
+                    });
+                    if (root) {
+                        console.log("Destroy __root__");
+                        // Lift all children up to the root level
+                        root.getChildren().forEach((child) => {
+                            child.parent = parent;
+                        });
+                        root.getChildTransformNodes().forEach((child) => {
+                            child.parent = parent;
+                        });
+                        root.dispose();
+
+                        if (assetRef.rhs) {
+                            // Flip z scale to -1
+                            parent.scaling.z *= -1;
                         }
+                    }
+
+                    if (assetRef.type === "environment") {
+                        const environmentAsset: EnvironmentAsset = {
+                            meshes: result.meshes,
+                        };
                         AssetManager.setEnabled(environmentAsset, false);
                         assetRef.defferedResolve!(environmentAsset);
                     } else if (assetRef.type === "character") {
                         result.particleSystems.forEach((ps) => {
                             ps.stop();
-                        });
-
-                        // Put in one parent mesh
-                        const parent = new AbstractMesh(assetRef.name, scene);
-                        result.meshes.forEach((mesh) => {
-                            mesh.parent = parent;
                         });
 
                         result.skeletons.forEach((skeleton) => {
@@ -171,15 +196,20 @@ export class AssetManager {
                             );
                         }
 
-                        const characterAsset : CharacterAsset = {
+                        // Print all animations
+                        result.animationGroups.forEach((ag) => {
+                            ag.stop();
+                        });
+
+                        const characterAsset: CharacterAsset = {
                             skeleton: result.skeletons[0],
                             armature: armature,
                             mesh: parent,
-                        }
+                            animationGroups: result.animationGroups,
+                        };
 
                         AssetManager.setEnabled(characterAsset, false);
                         assetRef.defferedResolve!(characterAsset);
-
                     } else {
                         throw new Error("Unknown asset type: " + assetRef.type);
                     }
@@ -203,23 +233,37 @@ export class AssetManager {
         console.log("Loaded all assets in " + timeToLoad + " seconds");
     }
 
-    static setEnabled(asset: CharacterAsset | EnvironmentAsset, enabled: boolean) {
+    static setEnabled(
+        asset: CharacterAsset | EnvironmentAsset,
+        enabled: boolean
+    ) {
         if ("meshes" in asset) {
             asset.meshes.forEach((mesh) => {
                 mesh.setEnabled(enabled);
+                console.log(
+                    "Set enabled: " + enabled + " on mesh: " + mesh.name
+                );
             });
         }
 
         if ("mesh" in asset) {
             asset.mesh.setEnabled(enabled);
+            console.log(
+                "Set enabled: " + enabled + " on mesh: " + asset.mesh.name
+            );
         }
 
         if ("skeleton" in asset) {
-
         }
 
         if ("armature" in asset) {
             asset.armature.setEnabled(enabled);
+            console.log(
+                "Set enabled: " +
+                    enabled +
+                    " on armature: " +
+                    asset.armature.name
+            );
         }
     }
 }

@@ -58,7 +58,7 @@ export class FullBodyAvatar extends Avatar {
                 if (character.skeleton === null)
                     throw new Error("Skeleton is null");
                 this.skeleton = character.skeleton;
-                this.parentMesh.setEnabled(this.enabled);
+                AssetManager.setEnabled(character, true);
                 if (!this.parentMesh) throw new Error("Parent mesh is null");
                 if (!this.skeleton) throw new Error("Skeleton is null");
                 //this.parentMesh.skeleton = this.skeleton;
@@ -145,7 +145,9 @@ export class FullBodyAvatar extends Avatar {
         console.log("Calibrating full body avatar.");
         const globalBoneTransforms = this.rig.getBoneTransforms();
         if (globalBoneTransforms.length === 0)
-            return console.warn("No bone transforms gotten from rig. FullBodyAvatar cannot calibrate.");
+            return console.warn(
+                "No bone transforms gotten from rig. FullBodyAvatar cannot calibrate."
+            );
 
         for (let i = 0; i < this.armatureBoneOffsets.length; i++) {
             this.armatureBoneOffsets[i] = Vector3.Zero();
@@ -175,11 +177,9 @@ export class FullBodyAvatar extends Avatar {
     targetRelativeBoneTransforms(
         globalTransforms: Array<[Vector3, Quaternion]>
     ): Array<[Vector3, Quaternion]> {
-        // Go through BONE_ASSIGNMENTS in order and calculate the relative transform to the parent
+        // By what do we need to change the armature bone transforms to match the global transforms?
 
         const relativeBoneTransforms: Array<[Vector3, Quaternion]> = [];
-
-        const flipQuaternion = new Quaternion(0, 0, 1, 0);
 
         for (let i = 0; i < BONE_ASSIGNMENTS_ARRAY.length; i++) {
             const [boneName, boneIndex, parentIndex] =
@@ -189,10 +189,7 @@ export class FullBodyAvatar extends Avatar {
             if (gT === undefined) continue;
 
             if (parentIndex === null) {
-                relativeBoneTransforms.push([
-                    gT[0],
-                    gT[1].multiply(flipQuaternion),
-                ]);
+                relativeBoneTransforms.push([gT[0], gT[1]]);
             } else {
                 const pT = globalTransforms[parentIndex];
                 if (pT === undefined)
