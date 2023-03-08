@@ -11,7 +11,7 @@ import {
 
 import { Room } from "colyseus.js";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
-import { WebXRDefaultExperience } from "@babylonjs/core";
+import { WebXRDefaultExperience, WebXRState } from "@babylonjs/core";
 import { Conversion } from "../Conversion";
 
 // TODO: put this in a separate file
@@ -165,7 +165,9 @@ export class XSensXRRig extends HardwareRig {
         );
 
         // Continuous calibration
-        this.continuousCalibrate(room, 1 - Math.pow(0.08, deltaTime));
+        // if in VR
+        if (this.xr.baseExperience.state === WebXRState.IN_XR)
+            this.continuousCalibrate(room, 1 - Math.pow(0.08, deltaTime));
 
         // Update this.boneTransforms with headToXRPosition and headToXRRotation
         this.boneTransformsTransformed = this.boneTransformsRaw.map(
