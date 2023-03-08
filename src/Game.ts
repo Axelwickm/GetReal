@@ -131,7 +131,7 @@ export class Game {
             this.scene.render();
             let render = Date.now() - start - gameUpdate;
 
-            avgTotal = avgTotal * 0.98 + (Date.now() - lastTime) * 0.02;
+            avgTotal = avgTotal * 0.95 + (Date.now() - lastTime) * 0.05;
             lastTime = Date.now();
 
             // Update FPS counter
