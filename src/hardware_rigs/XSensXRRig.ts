@@ -182,6 +182,8 @@ export class XSensXRRig extends HardwareRig {
                     position
                 );
 
+                //position.scaleInPlace(0.5);
+
                 return [position, this.headToXRRotation.multiply(rotation)];
             }
         );

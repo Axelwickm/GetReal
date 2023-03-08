@@ -46,14 +46,7 @@ export class FullBodyAvatar extends Avatar {
     private modelBoneAngles: Array<Quaternion> = [];
     private modelBoneLengths: Array<number> = [];
 
-    private hwInTPose: Array<[Vector3, Quaternion]> = [];
-
-    // TODO: remove below
-    private armatureBoneOffsets: Array<Vector3> = [];
-    private armatureBoneAngleOffsets: Array<Quaternion> = [];
-    private armatureBoneScales: Array<number> = [];
-
-    private variance = 0.1;
+    public cutenessFactor: number = 0;
 
     constructor(scene: Scene, rig: HardwareRig, characterName: string) {
         super(scene, rig);
@@ -66,7 +59,7 @@ export class FullBodyAvatar extends Avatar {
                 if (character.skeleton === null)
                     throw new Error("Skeleton is null");
                 this.skeleton = character.skeleton;
-                AssetManager.setEnabled(character, true, rig.isMe());
+                AssetManager.setEnabled(character, true, false && rig.isMe());
                 if (!this.parentMesh) throw new Error("Parent mesh is null");
                 if (!this.skeleton) throw new Error("Skeleton is null");
                 character.armature.computeWorldMatrix(true);
@@ -93,7 +86,7 @@ export class FullBodyAvatar extends Avatar {
                 ).fill(Quaternion.Identity());
                 this.modelBoneLengths = Array(
                     BONE_ASSIGNMENTS_ARRAY.length
-                ).fill(1);
+                ).fill(0);
 
                 for (let i = 0; i < this.armatureBones.length; i++) {
                     const bone = this.armatureBones[i];
@@ -101,13 +94,27 @@ export class FullBodyAvatar extends Avatar {
                     const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
                     if (boneInds) {
                         // Set the bone's rotation to the model's bone rotation
-                        /*this.modelBoneOffsets[boneInds[0]] =
-                            bone.position.clone();*/
+                        this.modelBoneOffsets[boneInds[0]] =
+                            bone.position.clone();
                         this.modelBoneAngles[boneInds[0]] =
                             bone.absoluteRotationQuaternion?.clone() ||
                             Quaternion.Identity();
-                        this.modelBoneLengths[boneInds[0]] = bone.scaling.x;
-                        console.log(bone.scaling);
+                    }
+                }
+
+                for (let i = 0; i < this.skeleton?.bones.length; i++) {
+                    const bone = this.skeleton.bones[i];
+                    if (bone.parent) {
+                        const start = bone.parent
+                            .getAbsoluteTransform()
+                            .getTranslation();
+                        const end = bone
+                            .getAbsoluteTransform()
+                            .getTranslation();
+                        const length = Vector3.Distance(start, end);
+                        const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
+                        if (boneInds)
+                            this.modelBoneLengths[boneInds[0]] = length;
                     }
                 }
 
@@ -115,18 +122,6 @@ export class FullBodyAvatar extends Avatar {
                     const bone = this.armatureBones[i];
                     bone.position = Vector3.Zero();
                     bone.rotationQuaternion = Quaternion.Identity();
-                }
-
-                for (let i = 0; i < BONE_ASSIGNMENTS_ARRAY.length; i++) {
-                    // Read model bone angles
-                    this.hwInTPose.push([
-                        Vector3.Zero(),
-                        Quaternion.Identity(),
-                    ]);
-
-                    this.armatureBoneOffsets.push(Vector3.Zero());
-                    this.armatureBoneAngleOffsets.push(Quaternion.Identity());
-                    this.armatureBoneScales.push(1);
                 }
             });
     }
@@ -157,13 +152,15 @@ export class FullBodyAvatar extends Avatar {
             // For each tranform node child of this.armature
             for (let i = 0; i < this.armatureBones.length; i++) {
                 const bone = this.armatureBones[i];
+
+                const boneParent: TransformNode | null =
+                    bone.parent as TransformNode;
                 const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                if (boneInds && bone.parent) {
+                if (boneInds && boneParent) {
                     const thisGlobal = globalBoneTransforms[boneInds[0]];
                     if (boneInds[1] !== null) {
-
-                        // Convert to bones local space
-                        const parentBoneInv = bone.parent
+                        // Location
+                        const parentBoneInv = boneParent
                             .getWorldMatrix()
                             .invert();
 
@@ -172,13 +169,33 @@ export class FullBodyAvatar extends Avatar {
                             parentBoneInv
                         );
 
-                        // Turn bone by matrix
+                        // Rotation
                         const naturalRotation =
                             this.modelBoneAngles[boneInds[0]];
 
-                        bone.rotationQuaternion = Quaternion.FromRotationMatrix(
-                            parentBoneInv
-                        ).multiply(thisGlobal[1].multiply(naturalRotation));
+                        bone.rotationQuaternion =
+                            boneParent.absoluteRotationQuaternion.multiply(
+                                thisGlobal[1].multiply(naturalRotation)
+                            );
+
+                        //this.cutenessFactor = Math.sin(new Date().getTime() / 1000) + 1;
+
+                        // Scale
+                        const parentGlobal = globalBoneTransforms[boneInds[1]];
+                        const globalDist = Vector3.Distance(
+                            thisGlobal[0],
+                            parentGlobal[0]
+                        );
+                        const localDist = this.modelBoneLengths[boneInds[0]];
+                        let scale = globalDist / localDist;
+                        if (this.cutenessFactor > 0)
+                            scale = Math.pow(scale, 1 - this.cutenessFactor);
+                        const parentScale = boneParent.absoluteScaling;
+                        bone.scaling = new Vector3(
+                            scale * parentScale.x,
+                            scale * parentScale.y,
+                            scale * parentScale.z
+                        );
 
                         bone.computeWorldMatrix(true);
                     } else {
@@ -190,22 +207,5 @@ export class FullBodyAvatar extends Avatar {
         }
     }
 
-    async calibrate() {
-        // Here, we assume the user is standing straight with arms to the side (exactly like the character)
-        // We then measure the differences in joint angles (TODO: and position/scale?) between the character and the user
-        // It is not just a fine tuning thing. For example, the leg bones in the rig point down, while the character's leg bones point forward.
-        console.log("Calibrating full body avatar.");
-        const globalBoneTransforms = this.rig.getBoneTransforms();
-        if (globalBoneTransforms.length === 0)
-            return console.warn(
-                "No bone transforms gotten from rig. FullBodyAvatar cannot calibrate."
-            );
-
-        this.hwInTPose = globalBoneTransforms.map((t) => [
-            t[0].clone(),
-            t[1].clone(),
-        ]);
-
-        console.log("Full body avatar calibrated.");
-    }
+    async calibrate() {}
 }
