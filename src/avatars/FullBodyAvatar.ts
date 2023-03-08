@@ -2,7 +2,7 @@ import { Avatar } from "./Avatar";
 import { AssetManager } from "../AssetManager";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
 import { Scene, AbstractMesh, Skeleton, TransformNode } from "@babylonjs/core";
-import { Vector3, Quaternion, Matrix } from "@babylonjs/core/Maths/math.vector";
+import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 
 // Constant map: Name -> index
 // Name, index, and parent index
@@ -102,8 +102,6 @@ export class FullBodyAvatar extends Avatar {
                         this.modelBoneAngles[boneInds[0]] =
                             bone.absoluteRotationQuaternion?.clone() ||
                             Quaternion.Identity();
-                        
-                        console.log(bone.name, bone.rotationQuaternion, bone.absoluteRotationQuaternion);
                     }
                 }
 
@@ -147,100 +145,6 @@ export class FullBodyAvatar extends Avatar {
 
     update() {
         if (this.armatureBones) {
-            /*let trialValuesOffsets: Array<typeof this.armatureBoneOffsets> = [];
-            let trialValuesAngles: Array<typeof this.armatureBoneAngleOffsets> =
-                [];
-            let bestError = Infinity;
-            let bestTrial = 0;
-
-            for (let trial = 0; trial < 10; trial++) {
-                if (trial === 0) {
-                    trialValuesOffsets.push([...this.armatureBoneOffsets]);
-                    trialValuesAngles.push([...this.armatureBoneAngleOffsets]);
-                } else {
-                    // Apply noise
-                    const whichBone = Math.floor(Math.random() * 24);
-                    trialValuesOffsets.push(
-                        trialValuesOffsets[0].map((v, i) =>
-                            i === whichBone
-                                ? v
-                                      .clone()
-                                      .add(
-                                          Vector3.Random().scale(this.variance)
-                                      )
-                                : v
-                        )
-                    );
-
-                    trialValuesAngles.push(
-                        trialValuesAngles[0].map((v, i) =>
-                            i === whichBone
-                                ? v
-                                      .add(
-                                          new Quaternion(
-                                              Math.random(),
-                                              Math.random(),
-                                              Math.random(),
-                                              Math.random()
-                                          ).scale(this.variance)
-                                      )
-                                      .normalize()
-                                : v
-                        )
-                    );
-                }
-
-                this.armatureBoneOffsets = trialValuesOffsets[trial];
-                this.armatureBoneAngleOffsets = trialValuesAngles[trial];
-
-                const globalBoneTransforms = this.rig.getBoneTransforms();
-                const relativeBoneTransforms =
-                    this.targetRelativeBoneTransforms(globalBoneTransforms);
-                // For each tranform node child of this.armature
-                for (let i = 0; i < this.armatureBones.length; i++) {
-                    const bone = this.armatureBones[i];
-                    const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                    if (boneInds) {
-                        const t = relativeBoneTransforms[boneInds[0]];
-                        if (t) {
-                            // Local positions
-                            if (i === 16){
-                                 t[0] = Vector3.Zero(); // Root bone
-                                 t[1] = Quaternion.Identity();
-                            }-                    
-                            bone.position = t[0];
-                            bone.rotationQuaternion = t[1];
-                        }
-                    }
-                }
-
-                this.parentMesh?.computeWorldMatrix(true);
-                this.skeleton?.computeAbsoluteTransforms(true);
-
-                const error = this.calculateError(globalBoneTransforms); // Compares with the rig
-                console.log("Error", error);
-                if (error < bestError) {
-                    bestError = error;
-                    bestTrial = trial;
-                }
-            }
-
-            this.variance *= bestTrial === 0 ? 0.999 : 1.01;
-            //console.log(bestTrial, bestError, this.variance);
-
-            this.armatureBoneOffsets = trialValuesOffsets[bestTrial];
-            this.armatureBoneAngleOffsets = trialValuesAngles[bestTrial];
-            if (bestTrial !== 0) {
-                console.log("Best trial", bestTrial);
-                console.log(
-                    this.armatureBoneOffsets[1],
-                    this.armatureBoneAngleOffsets[1]
-                );
-            }*/
-
-            /*const relativeBoneTransforms =
-                this.targetRelativeBoneTransforms(globalBoneTransforms);*/
-
             const globalBoneTransforms = this.rig.getBoneTransforms();
             if (globalBoneTransforms.length === 0) return;
 
@@ -251,14 +155,9 @@ export class FullBodyAvatar extends Avatar {
                 if (boneInds && bone.parent) {
                     const thisGlobal = globalBoneTransforms[boneInds[0]];
                     if (boneInds[1] !== null) {
-                        const parentGlobal = globalBoneTransforms[boneInds[1]];
-                        const scale = thisGlobal[0].subtract(
-                            parentGlobal[0]
-                        ).length();
 
                         // Convert to bones local space
-                        const parentBone = bone.parent;
-                        const parentBoneInv = parentBone
+                        const parentBoneInv = bone.parent
                             .getWorldMatrix()
                             .invert();
 
@@ -268,40 +167,12 @@ export class FullBodyAvatar extends Avatar {
                         );
 
                         // Turn bone by matrix
-                        // Parnet inverse matrix, naturalRotation, thisGlobal[1]
                         const naturalRotation =
                             this.modelBoneAngles[boneInds[0]];
-                        //const thisGlobalQ = new Quaternion(thisGlobal[1]._x, thisGlobal[1]._y, thisGlobal[1]._z, thisGlobal[1]._w);
 
                         bone.rotationQuaternion = Quaternion.FromRotationMatrix(
                             parentBoneInv
                         ).multiply(thisGlobal[1].multiply(naturalRotation));
-
-                        /*bone.rotationQuaternion = naturalRotation.multiply(
-                            Quaternion.FromRotationMatrix(
-                                parentBoneInv
-                            ).multiply(thisGlobal[1])
-                        );*/
-
-                        /*bone.rotationQuaternion =
-                            thisGlobal[1] // global
-                            .multiply(Quaternion.FromRotationMatrix(parentBone.getWorldMatrix()))
-                            .multiply(naturalRotation) // local
-                            .multiply(Quaternion.FromRotationMatrix(parentBoneInv));**/
-
-                        /*
-                        bone.rotationQuaternion = Quaternion.FromRotationMatrix(
-                            parentBoneInv
-                        ).multiply(naturalRotation).multiply(thisGlobal[1]);
-
-                        bone.rotationQuaternion = Quaternion.FromRotationMatrix(
-                            parentBoneInv
-                        ).multiply(naturalRotation.multiply(thisGlobal[1]));
-
-                        bone.rotationQuaternion = Quaternion.FromRotationMatrix(
-                            parentBoneInv
-                        ).multiply(thisGlobal[1]).multiply(naturalRotation);
-                        */
 
                         bone.computeWorldMatrix(true);
                     } else {
@@ -329,99 +200,6 @@ export class FullBodyAvatar extends Avatar {
             t[1].clone(),
         ]);
 
-        /*for (let i = 0; i < this.armatureBoneOffsets.length; i++) {
-            this.armatureBoneOffsets[i] = Vector3.Zero();
-            this.armatureBoneAngleOffsets[i] = Quaternion.Identity();
-            this.armatureBoneScales[i] = 1;
-        }
-
-        const relativeBoneTransforms =
-            this.targetRelativeBoneTransforms(globalBoneTransforms);
-
-        if (
-            relativeBoneTransforms.length !==
-            this.armatureBoneAngleOffsets.length
-        )
-            throw new Error("Invalid length");
-
-        for (let i = 0; i < this.armatureBoneAngleOffsets.length; i++) {
-            /*this.armatureBoneOffsets[i] = this.modelBoneOffsets[i].subtract(
-                relativeBoneTransforms[i][0].clone()
-            );
-            this.armatureBoneAngleOffsets[i] = this.modelBoneAngles[i].multiply(
-                Quaternion.Inverse(relativeBoneTransforms[i][1].clone())
-            );
-            this.armatureBoneOffsets[i] = relativeBoneTransforms[i][0].clone();
-            this.armatureBoneAngleOffsets[i] =
-                relativeBoneTransforms[i][1].clone();
-        }*/
         console.log("Full body avatar calibrated.");
-    }
-
-    targetRelativeBoneTransforms(
-        globalTransforms: Array<[Vector3, Quaternion]>
-    ): Array<[Vector3, Quaternion]> {
-        // By what do we need to change the armature bone transforms to match the global transforms?
-
-        const relativeBoneTransforms: Array<[Vector3, Quaternion]> = [];
-
-        for (let i = 0; i < BONE_ASSIGNMENTS_ARRAY.length; i++) {
-            const [boneName, boneIndex, parentIndex] =
-                BONE_ASSIGNMENTS_ARRAY[i];
-
-            const gT = globalTransforms[boneIndex];
-            if (gT === undefined) continue;
-
-            if (parentIndex === null) {
-                relativeBoneTransforms.push([gT[0], gT[1]]);
-            } else {
-                const pT = globalTransforms[parentIndex];
-                if (pT === undefined)
-                    throw new Error(
-                        "Bone parent transform not found " +
-                            BONE_ASSIGNMENTS_ARRAY[parentIndex][0]
-                    );
-
-                /*let angleDelta = gT[1].multiply(pT[1].clone().invert());
-                angleDelta = angleDelta.multiply(
-                    this.armatureBoneAngleOffsets[boneIndex]
-                );*/
-                //const globalPosDelta = gT[0].subtract(pT[0]);
-
-                /*const rotatedPosDelta = new Vector3(1, 0, 0)
-                    .rotateByQuaternionToRef(angleDelta, new Vector3())
-                    .scale(globalPosDelta.length())
-                    .add(this.armatureBoneOffsets[boneIndex]);
-                    */
-                //relativeBoneTransforms.push([rotatedPosDelta, angleDelta]);
-            }
-        }
-
-        return relativeBoneTransforms;
-    }
-
-    calculateError(globalBoneTransforms: Array<[Vector3, Quaternion]>): number {
-        // See how close the rig's bone transforms are to the model's bone transforms
-        /*if (this.armatureBones) {
-            let totalError = 0;
-            for (let i = 0; i < this.armatureBones.length; i++) {
-                const bone = this.armatureBones[i];
-                const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                if (boneInds) {
-                    const target = globalBoneTransforms[boneInds[0]];
-                    totalError += bone.absolutePosition
-                        .subtract(target[0])
-                        .length();
-                    const angleDelta = bone.absoluteRotationQuaternion.multiply(
-                        target[1].clone().invert()
-                    );
-                    //totalError += angleDelta.toEulerAngles().length();
-                }
-            }
-            return totalError;
-        } else {
-            return Infinity;
-        }*/
-        return 0;
     }
 }
