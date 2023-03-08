@@ -111,8 +111,14 @@ export class AdminMenu {
     getPlayerElement(playerId: string, selector: string) {
         let element = this.playerElements.get(playerId + selector);
         if (!element) {
-            element = this.adminMenuElement.querySelector(
-                "#player_" + playerId + " " + selector
+            const playerElement = this.adminMenuElement.querySelector(
+                "#player_" + playerId
+            ) as HTMLDivElement;
+            if (!playerElement) {
+                throw new Error(`Could not find player element ${playerId}`);
+            }
+            element = playerElement.querySelector(
+                selector
             ) as HTMLDivElement;
             if (!element) {
                 throw new Error(`Could not find element ${selector}`);
@@ -280,6 +286,16 @@ export class AdminMenu {
             });
         });
 
+        const DeleteElement = playerElement.querySelector(
+            ".delete"
+        ) as HTMLInputElement;
+        DeleteElement.addEventListener("click", () => {
+            // Make sure playerElement has class offline
+            if (playerElement.classList.contains("offline")) {
+                this.unregisterPlayer(playerState);
+            }
+        });
+
         // On player update, update the player element
         this.game.getPlayer(playerState.sessionId)?.addOnChangeCallback(() => {
             if (this.enabled) this.updatePlayerElement(playerState);
@@ -307,16 +323,21 @@ export class AdminMenu {
     unregisterPlayer(player: PlayerSchema) {
         this.players.delete(player.cookieId);
         const playerElement = this.playersElement.querySelector(
-            "#player_" + player.cookieId
+            "#player_" + player.sessionId
         ) as HTMLDivElement;
         this.playersElement.removeChild(playerElement);
     }
 
     setOffline(player: PlayerSchema) {
         const playerElement = this.playersElement.querySelector(
-            "#player_" + player.cookieId
+            "#player_" + player.sessionId
         ) as HTMLDivElement;
         playerElement.classList.add("offline");
+        const DeleteElement = this.getPlayerElement(
+            player.sessionId,
+            ".delete"
+        ) as HTMLInputElement;
+        DeleteElement.disabled = false;
     }
 
     msgPlayerSettings(msg: PlayerSettingsUpdateMessage) {
