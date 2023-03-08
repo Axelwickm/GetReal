@@ -165,7 +165,7 @@ export class XSensXRRig extends HardwareRig {
         );
 
         // Continuous calibration
-        //this.continuousCalibrate(room, 1 - Math.pow(0.08, deltaTime));
+        this.continuousCalibrate(room, 1 - Math.pow(0.08, deltaTime));
 
         // Update this.boneTransforms with headToXRPosition and headToXRRotation
         this.boneTransformsTransformed = this.boneTransformsRaw.map(

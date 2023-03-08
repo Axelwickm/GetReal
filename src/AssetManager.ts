@@ -19,6 +19,7 @@ type AssetRef = {
     path: string;
     type: "character" | "environment";
     rhs: boolean;
+    meMask?: Array<string>; // Names of meshes if associated with specific client (ex. to hide inside of head)
     defferedResolve?: (value: CharacterAsset | EnvironmentAsset) => void;
     defferedReject?: (reason?: any) => void;
 };
@@ -41,6 +42,14 @@ const ASSETS: Array<AssetRef> = [
         name: "BlueMonsterGirl",
         path: "FullBodyAvatars/BlueMonsterGirl.glb",
         type: "character",
+        meMask: [
+            "EyeLeft",
+            "EyeRight",
+            "Wolf3D_Teeth",
+            "Wolf3D_Head",
+            "Wolf3D_Hair",
+            "Wolf3D_Outfit_Top",
+        ],
         rhs: false, // Actually, this currenly is, but this messes with the rigging. TODO: convert to LHS properly
     },
 ];
@@ -53,7 +62,17 @@ export type CharacterAsset = {
     skeleton: Skeleton;
     armature: TransformNode; // For some reason, this is what we need to change
     mesh: AbstractMesh;
+    meMask: Array<string>;
     animationGroups: Array<AnimationGroup>;
+};
+
+const isCharacterAsset = (asset: any): asset is CharacterAsset => {
+    return asset.skeleton !== undefined;
+};
+
+const isEnvironmentAsset = (asset: any): asset is EnvironmentAsset => {
+    // Not character and has meshes
+    return !isCharacterAsset(asset) && asset.meshes !== undefined;
 };
 
 export class AssetManager {
@@ -205,6 +224,7 @@ export class AssetManager {
                             skeleton: result.skeletons[0],
                             armature: armature,
                             mesh: parent,
+                            meMask: assetRef.meMask || [],
                             animationGroups: result.animationGroups,
                         };
 
@@ -235,7 +255,8 @@ export class AssetManager {
 
     static setEnabled(
         asset: CharacterAsset | EnvironmentAsset,
-        enabled: boolean
+        enabled: boolean,
+        isMe: boolean = false
     ) {
         if ("meshes" in asset) {
             asset.meshes.forEach((mesh) => {
@@ -264,6 +285,21 @@ export class AssetManager {
                     " on armature: " +
                     asset.armature.name
             );
+        }
+
+        if (isMe && isCharacterAsset(asset)) {
+            // Recursively disable all meshes that are in the meMask
+            const disableMeshes = (mesh: AbstractMesh) => {
+                if (asset.meMask.includes(mesh.name)) {
+                    mesh.setEnabled(!enabled);
+                    console.log(
+                        "Set enabled: " + !enabled + " on mesh: " + mesh.name + " (meMask)"
+                    );
+                }
+            };
+
+            const childMeshes = asset.mesh.getChildMeshes();
+            childMeshes.forEach(disableMeshes);
         }
     }
 }

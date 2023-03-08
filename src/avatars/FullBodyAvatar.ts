@@ -44,6 +44,7 @@ export class FullBodyAvatar extends Avatar {
     // Same order as BONE_ASSIGNMENTS_ARRAY
     private modelBoneOffsets: Array<Vector3> = [];
     private modelBoneAngles: Array<Quaternion> = [];
+    private modelBoneLengths: Array<number> = [];
 
     private hwInTPose: Array<[Vector3, Quaternion]> = [];
 
@@ -65,7 +66,7 @@ export class FullBodyAvatar extends Avatar {
                 if (character.skeleton === null)
                     throw new Error("Skeleton is null");
                 this.skeleton = character.skeleton;
-                AssetManager.setEnabled(character, true);
+                AssetManager.setEnabled(character, true, rig.isMe());
                 if (!this.parentMesh) throw new Error("Parent mesh is null");
                 if (!this.skeleton) throw new Error("Skeleton is null");
                 character.armature.computeWorldMatrix(true);
@@ -90,6 +91,9 @@ export class FullBodyAvatar extends Avatar {
                 this.modelBoneAngles = Array(
                     BONE_ASSIGNMENTS_ARRAY.length
                 ).fill(Quaternion.Identity());
+                this.modelBoneLengths = Array(
+                    BONE_ASSIGNMENTS_ARRAY.length
+                ).fill(1);
 
                 for (let i = 0; i < this.armatureBones.length; i++) {
                     const bone = this.armatureBones[i];
@@ -102,6 +106,8 @@ export class FullBodyAvatar extends Avatar {
                         this.modelBoneAngles[boneInds[0]] =
                             bone.absoluteRotationQuaternion?.clone() ||
                             Quaternion.Identity();
+                        this.modelBoneLengths[boneInds[0]] = bone.scaling.x;
+                        console.log(bone.scaling);
                     }
                 }
 
