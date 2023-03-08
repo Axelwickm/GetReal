@@ -68,6 +68,8 @@ export class FullBodyAvatar extends Avatar {
                 AssetManager.setEnabled(character, true);
                 if (!this.parentMesh) throw new Error("Parent mesh is null");
                 if (!this.skeleton) throw new Error("Skeleton is null");
+                character.armature.computeWorldMatrix(true);
+                this.skeleton.computeAbsoluteTransforms();
                 //this.parentMesh.skeleton = this.skeleton;
                 // And for the children
                 /*for (let i = 0; i < this.parentMesh.getChildren().length; i++) {
@@ -91,18 +93,24 @@ export class FullBodyAvatar extends Avatar {
 
                 for (let i = 0; i < this.armatureBones.length; i++) {
                     const bone = this.armatureBones[i];
+                    bone.computeWorldMatrix(true);
                     const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
                     if (boneInds) {
                         // Set the bone's rotation to the model's bone rotation
-                        bone.computeWorldMatrix(true);
-                        this.modelBoneOffsets[boneInds[0]] =
-                            bone.position.clone();
+                        /*this.modelBoneOffsets[boneInds[0]] =
+                            bone.position.clone();*/
                         this.modelBoneAngles[boneInds[0]] =
-                            bone.rotationQuaternion?.clone() ||
+                            bone.absoluteRotationQuaternion?.clone() ||
                             Quaternion.Identity();
-                        bone.position = Vector3.Zero();
-                        bone.rotationQuaternion = Quaternion.Identity();
+                        
+                        console.log(bone.name, bone.rotationQuaternion, bone.absoluteRotationQuaternion);
                     }
+                }
+
+                for (let i = 0; i < this.armatureBones.length; i++) {
+                    const bone = this.armatureBones[i];
+                    bone.position = Vector3.Zero();
+                    bone.rotationQuaternion = Quaternion.Identity();
                 }
 
                 for (let i = 0; i < BONE_ASSIGNMENTS_ARRAY.length; i++) {
@@ -199,7 +207,7 @@ export class FullBodyAvatar extends Avatar {
                             if (i === 16){
                                  t[0] = Vector3.Zero(); // Root bone
                                  t[1] = Quaternion.Identity();
-                            }
+                            }-                    
                             bone.position = t[0];
                             bone.rotationQuaternion = t[1];
                         }
@@ -234,6 +242,7 @@ export class FullBodyAvatar extends Avatar {
                 this.targetRelativeBoneTransforms(globalBoneTransforms);*/
 
             const globalBoneTransforms = this.rig.getBoneTransforms();
+            if (globalBoneTransforms.length === 0) return;
 
             // For each tranform node child of this.armature
             for (let i = 0; i < this.armatureBones.length; i++) {
@@ -242,6 +251,11 @@ export class FullBodyAvatar extends Avatar {
                 if (boneInds && bone.parent) {
                     const thisGlobal = globalBoneTransforms[boneInds[0]];
                     if (boneInds[1] !== null) {
+                        const parentGlobal = globalBoneTransforms[boneInds[1]];
+                        const scale = thisGlobal[0].subtract(
+                            parentGlobal[0]
+                        ).length();
+
                         // Convert to bones local space
                         const parentBone = bone.parent;
                         const parentBoneInv = parentBone
@@ -257,12 +271,17 @@ export class FullBodyAvatar extends Avatar {
                         // Parnet inverse matrix, naturalRotation, thisGlobal[1]
                         const naturalRotation =
                             this.modelBoneAngles[boneInds[0]];
+                        //const thisGlobalQ = new Quaternion(thisGlobal[1]._x, thisGlobal[1]._y, thisGlobal[1]._z, thisGlobal[1]._w);
 
-                        bone.rotationQuaternion = naturalRotation.multiply(
+                        bone.rotationQuaternion = Quaternion.FromRotationMatrix(
+                            parentBoneInv
+                        ).multiply(thisGlobal[1].multiply(naturalRotation));
+
+                        /*bone.rotationQuaternion = naturalRotation.multiply(
                             Quaternion.FromRotationMatrix(
                                 parentBoneInv
                             ).multiply(thisGlobal[1])
-                        );
+                        );*/
 
                         /*bone.rotationQuaternion =
                             thisGlobal[1] // global
@@ -300,7 +319,6 @@ export class FullBodyAvatar extends Avatar {
         // It is not just a fine tuning thing. For example, the leg bones in the rig point down, while the character's leg bones point forward.
         console.log("Calibrating full body avatar.");
         const globalBoneTransforms = this.rig.getBoneTransforms();
-        console.log(JSON.stringify(globalBoneTransforms));
         if (globalBoneTransforms.length === 0)
             return console.warn(
                 "No bone transforms gotten from rig. FullBodyAvatar cannot calibrate."
