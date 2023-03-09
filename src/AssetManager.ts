@@ -234,6 +234,12 @@ export class AssetManager {
                             ag.stop();
                         });
 
+                        // Disable occlusion culling for all meshes
+                        meshes.forEach((mesh) => {
+                            //mesh.occlusionQueryAlgorithmType = 0;
+                            //mesh.alwaysSelectAsActiveMesh = true;
+                        });
+
                         const characterAsset: CharacterAsset = {
                             skeleton: result.skeletons[0],
                             armature: armature,

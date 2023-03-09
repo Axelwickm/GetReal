@@ -59,7 +59,7 @@ export class FullBodyAvatar extends Avatar {
                 if (character.skeleton === null)
                     throw new Error("Skeleton is null");
                 this.skeleton = character.skeleton;
-                AssetManager.setEnabled(character, true, false && rig.isMe());
+                AssetManager.setEnabled(character, true, rig.isMe());
                 if (!this.parentMesh) throw new Error("Parent mesh is null");
                 if (!this.skeleton) throw new Error("Skeleton is null");
                 character.armature.computeWorldMatrix(true);

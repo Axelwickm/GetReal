@@ -230,10 +230,11 @@ export class Game {
             animationGroup.play(true);
             // When done, disable old environment
             animationGroup.onAnimationGroupLoopObservable.add(() => {
-                animationGroup.reset();
                 animationGroup.stop();
-                AssetManager.setEnabled(oldEnvironment!, false);
+                animationGroup.reset();
                 animationGroup.dispose();
+                AssetManager.setEnabled(oldEnvironment!, false);
+                
             });
         } else {
             // No animation, since this is the first scene
