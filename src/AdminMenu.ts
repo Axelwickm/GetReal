@@ -166,6 +166,8 @@ export class AdminMenu {
             }
         );
 
+        this.setDebugMode();
+
         this.room.state.room.listen("environment", (environment: string) => {
             this.setScene(environment);
         });
@@ -514,6 +516,31 @@ export class AdminMenu {
                     nonAdminEnterVRImmediatelyMode:
                         NonAdminEnterVRImmediatelyMode.Off,
                 });
+            };
+        }
+    }
+
+    setDebugMode() {
+        const debugModeElement = this.getElement("#debugModeOn");
+        const debugModeOffElement = this.getElement("#debugModeOff");
+
+        if (this.game.getDebugMode()) {
+            this.activateElement(debugModeElement);
+        } else {
+            this.activateElement(debugModeOffElement);
+        }
+
+        if (!debugModeElement.onclick) {
+            debugModeElement.onclick = () => {
+                this.game.setDebugMode(true);
+                this.activateElement(debugModeElement);
+            };
+        }
+
+        if (!debugModeOffElement.onclick) {
+            debugModeOffElement.onclick = () => {
+                this.game.setDebugMode(false);
+                this.activateElement(debugModeOffElement);
             };
         }
     }

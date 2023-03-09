@@ -42,7 +42,7 @@ export class Player {
         }
 
         const debugAvatar = new DebugAvatar(this.scene, this.rig);
-        debugAvatar.setEnabled(true);
+        debugAvatar.setEnabled(false);
         this.debugAvatar = debugAvatar;
 
         room.send(HardwareRigUpdateMessageType, {

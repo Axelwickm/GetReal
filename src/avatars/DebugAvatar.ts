@@ -50,10 +50,8 @@ export class DebugAvatar extends Avatar {
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
 
-        if (!this.rig.isMe()){
-            this.cameraCube.setEnabled(enabled);
-            this.cameraAxis.setEnabled(enabled);
-        }
+        this.cameraCube.setEnabled(enabled);
+        this.cameraAxis.setEnabled(enabled);
 
         this.hipCube.setEnabled(enabled);
         for (let i = 0; i < this.boneCubes.length; i++) {

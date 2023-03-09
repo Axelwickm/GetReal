@@ -23,6 +23,7 @@ export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
     private aPressed: boolean = false;
+    private bPressed: boolean = false;
 
     private adminMenu: AdminMenu = new AdminMenu(this);
     private players: Map<string, Player> = new Map();
@@ -124,22 +125,26 @@ export class Game {
 
         // run the main render loop
         engine.runRenderLoop(async () => {
-            let start = Date.now();
+            const startTime = Date.now();
             this.checkXRInput();
             this.update();
-            let gameUpdate = Date.now() - start;
+            const updateFinishTime = Date.now();
             this.scene.render();
-            let render = Date.now() - start - gameUpdate;
+            const renderFinishTime = Date.now();
+
+
+            const gameUpdateTime = updateFinishTime - startTime;
+            const renderTime =  renderFinishTime - updateFinishTime;
 
             avgTotal = avgTotal * 0.95 + (Date.now() - lastTime) * 0.05;
             lastTime = Date.now();
 
             // Update FPS counter
             if (Date.now() - lastUpdate > 2000) {
-                let fps = Math.round(1000 / avgTotal);
+                const fps = Math.round(1000 / avgTotal);
                 lastTime = Date.now();
                 lastUpdate = Date.now();
-                this.updateServer(fps, gameUpdate, render);
+                this.updateServer(fps, gameUpdateTime, renderTime);
             }
         });
     }
@@ -161,9 +166,13 @@ export class Game {
             if (controller.inputSource.handedness === "left") {
             } else if (controller.inputSource.handedness === "right") {
                 //   https://www.w3.org/TR/webxr-gamepads-module-1/
-                const p = controller.inputSource.gamepad?.buttons[4].pressed;
-                if (p && !this.aPressed) this.calibrate(true);
-                this.aPressed = p ?? false;
+                const a = controller.inputSource.gamepad?.buttons[4].pressed;
+                if (a && !this.aPressed) this.calibrate(true);
+                this.aPressed = a ?? false;
+
+                const b = controller.inputSource.gamepad?.buttons[5].pressed;
+                if (b && !this.bPressed) this.setDebugMode(!this.debugMode);
+                this.bPressed = b ?? false;
             }
         });
     }
