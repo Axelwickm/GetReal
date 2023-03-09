@@ -168,7 +168,7 @@ export class AssetManager {
                         return mesh.name === "__root__";
                     });
                     if (root) {
-                        console.log("Destroy __root__");
+                        console.log("Destroy __root__ for " + assetRef.name);
                         // Lift all children up to the root level
                         root.getChildren().forEach((child) => {
                             child.parent = parent;
@@ -192,9 +192,13 @@ export class AssetManager {
                         }
                     }
 
+                    const meshes = result.meshes.filter((mesh) => {
+                        return mesh !== root;
+                    });
+
                     if (assetRef.type === "environment") {
                         const environmentAsset: EnvironmentAsset = {
-                            meshes: result.meshes,
+                            meshes: meshes,
                         };
                         AssetManager.setEnabled(environmentAsset, false);
                         assetRef.defferedResolve!(environmentAsset);
