@@ -167,11 +167,11 @@ export class Game {
             if (controller.inputSource.handedness === "left") {
             } else if (controller.inputSource.handedness === "right") {
                 //   https://www.w3.org/TR/webxr-gamepads-module-1/
-                const a = controller.inputSource.gamepad?.buttons[4].pressed;
+                const a = controller.inputSource.gamepad?.buttons[4]?.pressed ?? false;
                 if (a && !this.aPressed) this.calibrate(true);
                 this.aPressed = a ?? false;
 
-                const b = controller.inputSource.gamepad?.buttons[5].pressed;
+                const b = controller.inputSource.gamepad?.buttons[5]?.pressed ?? false;
                 if (b && !this.bPressed) this.setDebugMode(!this.debugMode);
                 this.bPressed = b ?? false;
             }
