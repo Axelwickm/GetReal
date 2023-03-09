@@ -6,7 +6,7 @@
     "scripts": {
         "prestart": "run-script-os",
         "prestart:linux": "cp ./server/src/schema/*.ts ./src/schema && cp ./server/certs/* certs/",
-        "prestart:win32": "copy .\\server\\src\\schema\\*.ts .\\src\\schema && copy .\\server\\certs\\* certs\\.",
+        "prestart:win32": "copy .\\server\\src\\schema\\*.ts .\\src\\schema && copy .\\server\\certs\\* certs\\",
         "build": "webpack",
         "start": "webpack-dev-server --port 8083"
     },
