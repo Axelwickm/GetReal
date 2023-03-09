@@ -9,6 +9,8 @@ import {
     ISceneLoaderAsyncResult,
 } from "@babylonjs/core";
 
+import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
+
 /*
  * Singleton class for loading assets in order of priority, and then storing references to them
  * for other classes to use.
@@ -18,6 +20,8 @@ type AssetRef = {
     name: string;
     path: string;
     type: "character" | "environment";
+    parentOffset?: Vector3;
+    parentRotation?: Quaternion;
     rhs: boolean;
     meMask?: Array<string>; // Names of meshes if associated with specific client (ex. to hide inside of head)
     defferedResolve?: (value: CharacterAsset | EnvironmentAsset) => void;
@@ -35,10 +39,10 @@ const ASSETS: Array<AssetRef> = [
     {
         name: "Warehouse",
         path: "Environments/Warehouse.glb",
+        parentOffset: new Vector3(15, 0, 0),
         type: "environment",
         rhs: true,
-    },
-    {
+    },    {
         name: "BlueMonsterGirl",
         path: "FullBodyAvatars/BlueMonsterGirl.glb",
         type: "character",
@@ -179,6 +183,14 @@ export class AssetManager {
                         if (assetRef.rhs) {
                             // Flip z scale to -1
                             parent.scaling.z *= -1;
+                        }
+
+                        if (assetRef.parentOffset) {
+                            parent.position = assetRef.parentOffset;
+                        }
+
+                        if (assetRef.parentRotation) {
+                            parent.rotationQuaternion = assetRef.parentRotation;
                         }
                     }
 
