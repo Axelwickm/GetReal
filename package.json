@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "prestart": "cp ./server/src/schema/*.ts ./src/schema",
+    "prestart": "cross-env OS_TYPE=$(uname -s) npm run copy-schema",
+    "copy-schema": "if [ \"$OS_TYPE\" = \"Linux\" ]; then cp ./server/src/schema/*.ts ./src/schema; else copy .\\server\\src\\schema\\*.ts .\\src\\schema\\; fi; fi;",
     "build": "webpack",
     "start": "webpack-dev-server --port 8083"
   },
@@ -30,6 +31,7 @@
     "webpack-dev-server": "^4.11.1"
   },
   "dependencies": {
-    "colyseus.js": "^0.14.13"
+    "colyseus.js": "^0.14.13",
+    "cross-env": "^7.0.3"
   }
 }
