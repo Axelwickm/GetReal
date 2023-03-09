@@ -58,9 +58,19 @@ export class GetRealRoom extends Room<GetRealSchema> {
         this.onMessage(
             PlayerSettingsUpdateMessageType,
             (client, message: PlayerSettingsUpdateMessage) => {
-                this.state.players
-                    .get(message.sessionId)
-                    ?.updateFromSettingsMessage(message);
+                const playerState = this.state.players
+                    .get(message.sessionId);
+                playerState?.updateFromSettingsMessage(message);
+                if (message.name) {
+                    console.log("Player name is: ", message.name);
+                    for (const otherPlayerState of this.state.players.values()) {
+                        if (otherPlayerState.cookieId === playerState.cookieId) {
+                            // Same browser, meaning same session storage.
+                            // Let already update the name here, to avoid confusion.
+                            otherPlayerState.name = message.name;
+                        }
+                    }
+                }
             }
         );
 

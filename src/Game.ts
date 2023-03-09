@@ -1,4 +1,5 @@
 import { Player } from "./Player";
+import { PersistantData } from "./PersistantData";
 import { AdminMenu } from "./AdminMenu";
 import { GetRealSchema } from "./schema/GetRealSchema";
 import {
@@ -22,6 +23,8 @@ import { AssetManager, EnvironmentAsset } from "./AssetManager";
 export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
+    private persitentData: PersistantData = PersistantData.getInstance();
+
     private aPressed: boolean = false;
     private bPressed: boolean = false;
 
@@ -60,7 +63,47 @@ export class Game {
                 new Player(playerState, this.scene, room, isMe, this.xr)
             );
 
-            this.adminMenu.registerPlayer(playerState, isMe);
+            if (isMe || playerState.cookieId !== "undefined") {
+                this.adminMenu.registerPlayer(playerState, isMe);
+            } else {
+                // The cookie id can sometimes drop in a bit later
+                // so we'll wait for it to come in
+                playerState.listen("cookieId", (cookieId: string) => {
+                    if (cookieId !== "undefined")
+                        this.adminMenu.registerPlayer(playerState, isMe);
+                });
+            }
+
+
+            if (isMe) {
+                if (!this.room)
+                    throw new Error("Room not set when trying to send player introduction message");
+
+                this.room.send(PlayerSettingsUpdateMessageType, {
+                    sessionId: this.room.sessionId,
+                    cookieId: this.persitentData.data.cookieId,
+                    name: this.persitentData.data.name,
+                    isAdmin: this.persitentData.data.isAdmin,
+                });
+
+                playerState.listen("name", (name: string) => {
+                    this.persitentData.data = {
+                        ...this.persitentData.data,
+                        name: name,
+                    };
+                });
+
+                playerState.listen("cookieId", (cookieId: string) => {
+                    throw new Error("Cookie id should not change. How did this happen!?");
+                });
+
+                playerState.listen("isAdmin", (isAdmin: boolean) => {
+                    this.persitentData.data = {
+                        ...this.persitentData.data,
+                        isAdmin: isAdmin,
+                    };
+                });
+            }
         };
 
         room.state.players.onRemove = (
@@ -69,7 +112,7 @@ export class Game {
         ) => {
             console.log("player removed!", playerState, sessionId);
             this.players.delete(sessionId);
-            this.adminMenu.setOffline(playerState);
+            this.adminMenu.setOffline(playerState.sessionId, true);
         };
 
         this.room.onMessage(

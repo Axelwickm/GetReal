@@ -9,6 +9,7 @@ export const PlayerSettingsUpdateMessageType = "playerSettingsUpdate";
 export type PlayerSettingsUpdateMessage = {
     sessionId: string;
     cookieId?: string;
+    name?: string;
 
     isAdmin?: boolean;
     performerId?: number;
@@ -44,6 +45,7 @@ export type PlayerCalibrateMessage = {
 export class PlayerSchema extends Schema {
     @type("string") sessionId: string = "undefined";
     @type("string") cookieId: string = "undefined";
+    @type("string") name: string = "undefined";
 
     @type("boolean") isAdmin: boolean = false;
     @type("number") performerId: number = -1;
@@ -78,6 +80,7 @@ export class PlayerSchema extends Schema {
 
     updateFromSettingsMessage(message: PlayerSettingsUpdateMessage) {
         this.cookieId = message.cookieId ?? this.cookieId;
+	this.name = message.name ?? this.name;
 
         this.isAdmin = message.isAdmin ?? this.isAdmin;
         this.performerId = message.performerId ?? this.performerId;

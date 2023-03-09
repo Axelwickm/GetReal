@@ -174,7 +174,7 @@ export class AdminMenu {
     }
 
     registerPlayer(playerState: PlayerSchema, isMe: boolean) {
-        this.players.set(playerState.cookieId, playerState);
+        this.players.set(playerState.sessionId, playerState);
         let playerElement = this.playersElement.querySelector(
             ".mainPlayer"
         ) as HTMLDivElement;
@@ -183,10 +183,35 @@ export class AdminMenu {
         }
 
         if (!isMe) {
-            // Make copy of first player element
-            playerElement = playerElement.cloneNode(true) as HTMLDivElement;
-            playerElement.className = "";
-            this.playersElement.appendChild(playerElement);
+            // Look through all offline players, and see if we can find one with the same cookieId
+            let foundExisting = false;
+            const offlinePlayerElements = this.playersElement.querySelectorAll(
+                ".offline"
+            );
+            for (let i = 0; i < offlinePlayerElements.length; i++) {
+                const offlinePlayerElement = offlinePlayerElements[i] as HTMLDivElement;
+                const cookieIdElement = offlinePlayerElement.querySelector(
+                    ".cookieId"
+                ) as HTMLInputElement;
+                if (cookieIdElement.innerHTML === playerState.cookieId) {
+                    playerElement = offlinePlayerElement;
+                    foundExisting = true;
+                    const sessionIdElement = playerElement.querySelector(
+                        ".sessionId"
+                    ) as HTMLInputElement;
+                    const oldSessionId = sessionIdElement.innerHTML;
+                    this.setOffline(oldSessionId, false);
+                    this.players.delete(oldSessionId);
+                    break;
+                }
+            }
+
+            if (!foundExisting) {
+                // Make copy of first player element
+                playerElement = playerElement.cloneNode(true) as HTMLDivElement;
+                playerElement.className = "";
+                this.playersElement.appendChild(playerElement);
+            }
         }
 
         playerElement.id = "player_" + playerState.sessionId;
@@ -279,22 +304,25 @@ export class AdminMenu {
             });
         });
 
-        const CalibrateElement = playerElement.querySelector(
-            ".calibrate"
+        // Name change
+        const nameElement = playerElement.querySelector(
+            ".name"
         ) as HTMLInputElement;
-        CalibrateElement.addEventListener("click", () => {
-            this.msgCalibrate({
+        nameElement.addEventListener("change", () => {
+            this.msgPlayerSettings({
                 sessionId: playerState.sessionId,
+                name: nameElement.value,
             });
         });
+        playerState.listen("name", (name: string) => {
+            nameElement.value = name;
+        });
 
-        const DeleteElement = playerElement.querySelector(
-            ".delete"
-        ) as HTMLInputElement;
+        const DeleteElement = playerElement.querySelector(".delete") as HTMLInputElement;
         DeleteElement.addEventListener("click", () => {
-            // Make sure playerElement has class offline
-            if (playerElement.classList.contains("offline")) {
-                this.unregisterPlayer(playerState);
+                // Make sure playerElement has class offline
+                if (playerElement.classList.contains("offline")) {
+                        this.unregisterPlayer(playerState);
             }
         });
 
@@ -323,23 +351,27 @@ export class AdminMenu {
     }
 
     unregisterPlayer(player: PlayerSchema) {
-        this.players.delete(player.cookieId);
+        this.players.delete(player.sessionId);
         const playerElement = this.playersElement.querySelector(
             "#player_" + player.sessionId
         ) as HTMLDivElement;
         this.playersElement.removeChild(playerElement);
     }
 
-    setOffline(player: PlayerSchema) {
+    setOffline(sessionId: string, value: boolean) {
         const playerElement = this.playersElement.querySelector(
-            "#player_" + player.sessionId
+            "#player_" + sessionId
         ) as HTMLDivElement;
-        playerElement.classList.add("offline");
+        if (value) {
+            playerElement.classList.add("offline");
+        } else {
+            playerElement.classList.remove("offline");
+        }
         const DeleteElement = this.getPlayerElement(
-            player.sessionId,
+            sessionId,
             ".delete"
         ) as HTMLInputElement;
-        DeleteElement.disabled = false;
+        DeleteElement.disabled = !value;
     }
 
     msgPlayerSettings(msg: PlayerSettingsUpdateMessage) {
@@ -661,5 +693,15 @@ export class AdminMenu {
         } else if (hardwareRig.rigType === XSensXRRig.getRigType()) {
             this.activateElement(xsensXr);
         }
+    }
+
+    updatePlayerName(
+        sessionId: string,
+        name: string,
+        element: HTMLElement
+    ) {
+
+        const nameElement = this.getPlayerElement(sessionId, ".name");
+        (nameElement as HTMLInputElement).value = name;
     }
 }
