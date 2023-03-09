@@ -166,7 +166,7 @@ export class AdminMenu {
             }
         );
 
-        this.setDebugMode();
+        this.setDebugMode(this.game.getDebugMode());
 
         this.room.state.room.listen("environment", (environment: string) => {
             this.setScene(environment);
@@ -520,11 +520,11 @@ export class AdminMenu {
         }
     }
 
-    setDebugMode() {
+    setDebugMode(on: boolean) {
         const debugModeElement = this.getElement("#debugModeOn");
         const debugModeOffElement = this.getElement("#debugModeOff");
 
-        if (this.game.getDebugMode()) {
+        if (on) {
             this.activateElement(debugModeElement);
         } else {
             this.activateElement(debugModeOffElement);

@@ -116,6 +116,7 @@ export class Game {
         this.players.forEach((player) => {
             player.debugAvatar?.setEnabled(debugMode);
         });
+        this.adminMenu.setDebugMode(debugMode);
     }
 
     run(engine: Engine) {

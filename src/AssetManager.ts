@@ -5,8 +5,6 @@ import {
     AbstractMesh,
     TransformNode,
     AnimationGroup,
-    VertexBuffer,
-    ISceneLoaderAsyncResult,
 } from "@babylonjs/core";
 
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
