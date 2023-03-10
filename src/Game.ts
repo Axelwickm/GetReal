@@ -78,12 +78,12 @@ export class Game {
             if (isMe) {
                 if (!this.room)
                     throw new Error("Room not set when trying to send player introduction message");
-
+                
                 this.room.send(PlayerSettingsUpdateMessageType, {
                     sessionId: this.room.sessionId,
                     cookieId: this.persitentData.data.cookieId,
                     name: this.persitentData.data.name,
-                    isAdmin: this.persitentData.data.isAdmin,
+                    isAdmin: this.persitentData.data.isAdmin ? true : undefined,
                 });
 
                 playerState.listen("name", (name: string) => {
@@ -94,7 +94,7 @@ export class Game {
                 });
 
                 playerState.listen("cookieId", (cookieId: string) => {
-                    throw new Error("Cookie id should not change. How did this happen!?");
+
                 });
 
                 playerState.listen("isAdmin", (isAdmin: boolean) => {
