@@ -16,7 +16,6 @@ export class PersistantData {
     public set data(data: StoredData) {
         this._data = data;
         this.saveDataToLocalStorage();
-        console.log("Save", data);
     }
 
     private constructor() {

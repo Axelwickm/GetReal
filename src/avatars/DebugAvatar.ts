@@ -60,6 +60,8 @@ export class DebugAvatar extends Avatar {
         if (!this.created && enabled) {
             this.create();
         }
+
+        this.parent?.setEnabled(enabled);
     }
 
     update() {
