@@ -264,7 +264,6 @@ export class AssetManager {
                             meMask: assetRef.meMask || [],
                         };
 
-                        AssetManager.setEnabled(characterAsset, false);
                         assetRef.defferedResolve!(characterAsset);
                     } else {
                         throw new Error("Unknown asset type: " + assetRef.type);
@@ -298,8 +297,8 @@ export class AssetManager {
             return null;
         } else if (isCharacterAsset(asset)) {
             if (id)
-                return asset.container.instantiateModelsToScene(
-                    (name) => name === asset.name ? name + "_" + id : name
+                return asset.container.instantiateModelsToScene((name) =>
+                    name === asset.name ? name + "_" + id : name
                 );
             else throw new Error("Must provide id for character");
         } else {
@@ -309,31 +308,26 @@ export class AssetManager {
 
     static setEnabled(
         asset: CharacterAsset | EnvironmentAsset,
-        enabled: boolean,
-        isMe: boolean = false
+        enabled: boolean
     ) {
         if (isEnvironmentAsset(asset)) {
             asset.parent.setEnabled(enabled);
         } else if (isCharacterAsset(asset)) {
-            // TODO: fix for instanced meshes
-            if (isMe) {
-                // Recursively disable all meshes that are in the meMask
-                const disableMeshes = (mesh: AbstractMesh) => {
-                    if (asset.meMask.includes(mesh.name)) {
-                        mesh.setEnabled(!enabled);
-                        console.log(
-                            "Set enabled: " +
-                                !enabled +
-                                " on mesh: " +
-                                mesh.name +
-                                " (meMask)"
-                        );
-                    }
-                };
-
-                //const childMeshes = asset.mesh.getChildMeshes();
-                //childMeshes.forEach(disableMeshes);
-            }
+            throw new Error("Not implemented");
         }
+    }
+
+    static applyMeMask(
+        asset: CharacterAsset,
+        instances: InstantiatedEntries,
+        value: boolean
+    ) {
+        const parent = instances.rootNodes[0];
+        parent
+            .getChildren((node) => asset.meMask.includes(node.name), false)
+            .forEach((node) => {
+                // Invert, since we're applying the mask
+                node.setEnabled(!value);
+            });
     }
 }
