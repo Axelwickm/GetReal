@@ -117,9 +117,7 @@ export class AdminMenu {
             if (!playerElement) {
                 throw new Error(`Could not find player element ${playerId}`);
             }
-            element = playerElement.querySelector(
-                selector
-            ) as HTMLDivElement;
+            element = playerElement.querySelector(selector) as HTMLDivElement;
             if (!element) {
                 throw new Error(`Could not find element ${selector}`);
             }
@@ -129,13 +127,23 @@ export class AdminMenu {
     }
 
     show() {
+        console.log("showing admin menu");
         this.adminMenuElement.style.display = "block";
         this.enabled = true;
+        for (const [_playerId, player] of this.players) {
+            this.updatePlayer(player);
+        }
     }
 
     hide() {
         this.adminMenuElement.style.display = "none";
         this.enabled = false;
+    }
+
+    updatePlayer(player: PlayerSchema) {
+        this.updatePlayerElement(player);
+        this.updateAvatarElement(player.sessionId, player.avatar);
+        this.updateHardwareRigElement(player.sessionId, player.hardwareRig);
     }
 
     setRoom(room: Room<GetRealSchema>) {
@@ -178,18 +186,18 @@ export class AdminMenu {
         let playerElement = this.playersElement.querySelector(
             ".mainPlayer"
         ) as HTMLDivElement;
-        if (!playerElement) {
+        if (!playerElement)
             throw new Error("Could not find main player element");
-        }
 
         if (!isMe) {
             // Look through all offline players, and see if we can find one with the same cookieId
             let foundExisting = false;
-            const offlinePlayerElements = this.playersElement.querySelectorAll(
-                ".offline"
-            );
+            const offlinePlayerElements =
+                this.playersElement.querySelectorAll(".offline");
             for (let i = 0; i < offlinePlayerElements.length; i++) {
-                const offlinePlayerElement = offlinePlayerElements[i] as HTMLDivElement;
+                const offlinePlayerElement = offlinePlayerElements[
+                    i
+                ] as HTMLDivElement;
                 const cookieIdElement = offlinePlayerElement.querySelector(
                     ".cookieId"
                 ) as HTMLInputElement;
@@ -318,36 +326,48 @@ export class AdminMenu {
             nameElement.value = name;
         });
 
-        const DeleteElement = playerElement.querySelector(".delete") as HTMLInputElement;
+        const DeleteElement = playerElement.querySelector(
+            ".delete"
+        ) as HTMLInputElement;
         DeleteElement.addEventListener("click", () => {
-                // Make sure playerElement has class offline
-                if (playerElement.classList.contains("offline")) {
-                        this.unregisterPlayer(playerState);
+            // Make sure playerElement has class offline
+            if (playerElement.classList.contains("offline")) {
+                this.unregisterPlayer(playerState);
             }
         });
+
+        this.updatePlayer(playerState);
 
         // On player update, update the player element
         this.game.getPlayer(playerState.sessionId)?.addOnChangeCallback(() => {
             if (this.enabled) this.updatePlayerElement(playerState);
         });
 
-        playerState.avatar.onChange = () => {
+        playerState.avatar.listen("avatarType", () => {
+            console.log(
+                "avatarType changed",
+                playerState.sessionId,
+                playerState.avatar.avatarType
+            );
             if (this.enabled)
                 this.updateAvatarElement(
                     playerState.sessionId,
-                    playerState.avatar,
-                    playerElement
+                    playerState.avatar
                 );
-        };
+        });
 
-        playerState.hardwareRig.onChange = () => {
+        playerState.hardwareRig.listen("rigType", () => {
+            console.log(
+                "rigType changed",
+                playerState.sessionId,
+                playerState.hardwareRig.rigType
+            );
             if (this.enabled)
                 this.updateHardwareRigElement(
                     playerState.sessionId,
-                    playerState.hardwareRig,
-                    playerElement
+                    playerState.hardwareRig
                 );
-        };
+        });
     }
 
     unregisterPlayer(player: PlayerSchema) {
@@ -580,11 +600,14 @@ export class AdminMenu {
     setScene(environment: string) {
         const lobbys = this.getElement("#environmentLobbys");
         const warehouse = this.getElement("#environmentWarehouse");
+        const mountainsDance = this.getElement("#environmentMountainsDance");
 
         if (environment === "Lobbys") {
             this.activateElement(lobbys);
         } else if (environment === "Warehouse") {
             this.activateElement(warehouse);
+        } else if (environment === "MountainsDance") {
+            this.activateElement(mountainsDance);
         } else {
             throw new Error("Unhandled environment: " + environment);
         }
@@ -598,6 +621,12 @@ export class AdminMenu {
         if (!warehouse.onclick) {
             warehouse.onclick = () => {
                 this.msgRoomSettings({ environment: "Warehouse" });
+            };
+        }
+
+        if (!mountainsDance.onclick) {
+            mountainsDance.onclick = () => {
+                this.msgRoomSettings({ environment: "MountainsDance" });
             };
         }
 
@@ -657,11 +686,7 @@ export class AdminMenu {
         renderTimeElement.innerHTML = String(player.renderTime);
     }
 
-    updateAvatarElement(
-        sessionId: string,
-        avatar: AvatarSchema,
-        element: HTMLElement
-    ) {
+    updateAvatarElement(sessionId: string, avatar: AvatarSchema) {
         const noAvatar = this.getPlayerElement(sessionId, ".noAvatar");
         const simpleAvatar = this.getPlayerElement(sessionId, ".simpleAvatar");
         const fullBodyAvatar = this.getPlayerElement(
@@ -682,8 +707,7 @@ export class AdminMenu {
 
     updateHardwareRigElement(
         sessionId: string,
-        hardwareRig: HardwareRigSchema,
-        element: HTMLElement
+        hardwareRig: HardwareRigSchema
     ) {
         const xr = this.getPlayerElement(sessionId, ".XR");
         const xsensXr = this.getPlayerElement(sessionId, ".XSensXR");
@@ -693,15 +717,5 @@ export class AdminMenu {
         } else if (hardwareRig.rigType === XSensXRRig.getRigType()) {
             this.activateElement(xsensXr);
         }
-    }
-
-    updatePlayerName(
-        sessionId: string,
-        name: string,
-        element: HTMLElement
-    ) {
-
-        const nameElement = this.getPlayerElement(sessionId, ".name");
-        (nameElement as HTMLInputElement).value = name;
     }
 }

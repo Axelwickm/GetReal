@@ -23,7 +23,7 @@ export class PersistantData {
         const data = this.getDataFromLocalStorage();
 
         this._data = {
-            cookieId: data.cookieId || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+            cookieId: data.cookieId || Math.random().toString(36).substring(2, 15),
             name: data.name || "Anonymous",
             isAdmin: data.isAdmin || false,
         };

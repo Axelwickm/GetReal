@@ -44,7 +44,6 @@ export class DebugAvatar extends Avatar {
 
     destroy() {
         this.parent?.dispose();
-
     }
 
     static getAvatarType(): string {
@@ -80,7 +79,7 @@ export class DebugAvatar extends Avatar {
         const boneTransforms = this.rig.getBoneTransforms();
 
         // Create number of boxes needed
-        for (let i = 0; i < boneTransforms.length - this.boneCubes.length; i++) {
+        while (this.boneCubes.length < boneTransforms.length) {
             const boneCube = MeshBuilder.CreateBox("box", {}, this.scene);
             boneCube.parent = this.boxParent!;
             boneCube.scaling = new Vector3(0.06, 0.03, 0.03);

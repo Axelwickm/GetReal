@@ -1,10 +1,9 @@
 import {
     Scene,
     SceneLoader,
-    Skeleton,
+    AssetContainer,
     AbstractMesh,
-    TransformNode,
-    AnimationGroup,
+    InstantiatedEntries,
 } from "@babylonjs/core";
 
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
@@ -37,10 +36,18 @@ const ASSETS: Array<AssetRef> = [
     {
         name: "Warehouse",
         path: "Environments/Warehouse.glb",
-        parentOffset: new Vector3(15, 0, 0),
+        parentOffset: new Vector3(16, 0, 0),
         type: "environment",
         rhs: true,
-    },    {
+    },
+    {
+        name: "MountainsDance",
+        path: "Environments/MountainsDance.glb",
+        parentOffset: new Vector3(-85, 7.5, 97),
+        type: "environment",
+        rhs: true,
+    },
+    {
         name: "BlueMonsterGirl",
         path: "FullBodyAvatars/BlueMonsterGirl.glb",
         type: "character",
@@ -57,24 +64,25 @@ const ASSETS: Array<AssetRef> = [
 ];
 
 export type EnvironmentAsset = {
-    meshes: Array<AbstractMesh>;
+    type: "environment";
+    name: string;
+    container: AssetContainer;
+    parent: AbstractMesh;
 };
 
 export type CharacterAsset = {
-    skeleton: Skeleton;
-    armature: TransformNode; // For some reason, this is what we need to change
-    mesh: AbstractMesh;
+    type: "character";
+    name: string;
+    container: AssetContainer;
     meMask: Array<string>;
-    animationGroups: Array<AnimationGroup>;
 };
 
 const isCharacterAsset = (asset: any): asset is CharacterAsset => {
-    return asset.skeleton !== undefined;
+    return asset.type === "character";
 };
 
 const isEnvironmentAsset = (asset: any): asset is EnvironmentAsset => {
-    // Not character and has meshes
-    return !isCharacterAsset(asset) && asset.meshes !== undefined;
+    return asset.type === "environment";
 };
 
 export class AssetManager {
@@ -154,21 +162,24 @@ export class AssetManager {
             }
 
             const assetRef = ASSETS[i];
-            const promise = SceneLoader.ImportMeshAsync(
-                "",
-                "/",
+            const promise = SceneLoader.LoadAssetContainerAsync(
                 assetRef.path,
+                "",
                 scene
             )
                 .then((result) => {
-                    const parent = new AbstractMesh(assetRef.name, scene);
+                    //const parent = new AbstractMesh(assetRef.name, scene);
+                    const parent = result.createRootMesh();
+                    parent.name = assetRef.name;
 
                     // Find and destroy __root__
                     const root = result.meshes.find((mesh) => {
                         return mesh.name === "__root__";
                     });
+
                     if (root) {
                         console.log("Destroy __root__ for " + assetRef.name);
+
                         // Lift all children up to the root level
                         root.getChildren().forEach((child) => {
                             child.parent = parent;
@@ -192,13 +203,19 @@ export class AssetManager {
                         }
                     }
 
-                    const meshes = result.meshes.filter((mesh) => {
-                        return mesh !== root;
-                    });
-
                     if (assetRef.type === "environment") {
+                        result.animationGroups.forEach((ag) => {
+                            console.log("Stop animation group " + ag.name);
+                            ag.stop();
+                        });
+
+                        result.addAllToScene();
+
                         const environmentAsset: EnvironmentAsset = {
-                            meshes: meshes,
+                            type: "environment",
+                            name: assetRef.name,
+                            container: result,
+                            parent,
                         };
                         AssetManager.setEnabled(environmentAsset, false);
                         assetRef.defferedResolve!(environmentAsset);
@@ -235,17 +252,16 @@ export class AssetManager {
                         });
 
                         // Disable occlusion culling for all meshes
-                        meshes.forEach((mesh) => {
+                        result.meshes.forEach((mesh) => {
                             //mesh.occlusionQueryAlgorithmType = 0;
                             //mesh.alwaysSelectAsActiveMesh = true;
                         });
 
                         const characterAsset: CharacterAsset = {
-                            skeleton: result.skeletons[0],
-                            armature: armature,
-                            mesh: parent,
+                            type: "character",
+                            name: assetRef.name,
+                            container: result,
                             meMask: assetRef.meMask || [],
-                            animationGroups: result.animationGroups,
                         };
 
                         AssetManager.setEnabled(characterAsset, false);
@@ -273,53 +289,51 @@ export class AssetManager {
         console.log("Loaded all assets in " + timeToLoad + " seconds");
     }
 
+    static addAssetToScene(
+        asset: CharacterAsset | EnvironmentAsset,
+        id?: string
+    ): null | InstantiatedEntries {
+        if (isEnvironmentAsset(asset)) {
+            asset.container.addAllToScene();
+            return null;
+        } else if (isCharacterAsset(asset)) {
+            if (id)
+                return asset.container.instantiateModelsToScene(
+                    (name) => name === asset.name ? name + "_" + id : name
+                );
+            else throw new Error("Must provide id for character");
+        } else {
+            throw new Error("Unknown asset type");
+        }
+    }
+
     static setEnabled(
         asset: CharacterAsset | EnvironmentAsset,
         enabled: boolean,
         isMe: boolean = false
     ) {
-        if ("meshes" in asset) {
-            asset.meshes.forEach((mesh) => {
-                mesh.setEnabled(enabled);
-                console.log(
-                    "Set enabled: " + enabled + " on mesh: " + mesh.name
-                );
-            });
-        }
+        if (isEnvironmentAsset(asset)) {
+            asset.parent.setEnabled(enabled);
+        } else if (isCharacterAsset(asset)) {
+            // TODO: fix for instanced meshes
+            if (isMe) {
+                // Recursively disable all meshes that are in the meMask
+                const disableMeshes = (mesh: AbstractMesh) => {
+                    if (asset.meMask.includes(mesh.name)) {
+                        mesh.setEnabled(!enabled);
+                        console.log(
+                            "Set enabled: " +
+                                !enabled +
+                                " on mesh: " +
+                                mesh.name +
+                                " (meMask)"
+                        );
+                    }
+                };
 
-        if ("mesh" in asset) {
-            asset.mesh.setEnabled(enabled);
-            console.log(
-                "Set enabled: " + enabled + " on mesh: " + asset.mesh.name
-            );
-        }
-
-        if ("skeleton" in asset) {
-        }
-
-        if ("armature" in asset) {
-            asset.armature.setEnabled(enabled);
-            console.log(
-                "Set enabled: " +
-                    enabled +
-                    " on armature: " +
-                    asset.armature.name
-            );
-        }
-
-        if (isMe && isCharacterAsset(asset)) {
-            // Recursively disable all meshes that are in the meMask
-            const disableMeshes = (mesh: AbstractMesh) => {
-                if (asset.meMask.includes(mesh.name)) {
-                    mesh.setEnabled(!enabled);
-                    console.log(
-                        "Set enabled: " + !enabled + " on mesh: " + mesh.name + " (meMask)"
-                    );
-                }
-            };
-
-            const childMeshes = asset.mesh.getChildMeshes();
-            childMeshes.forEach(disableMeshes);
+                //const childMeshes = asset.mesh.getChildMeshes();
+                //childMeshes.forEach(disableMeshes);
+            }
         }
     }
 }

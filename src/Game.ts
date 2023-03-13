@@ -14,10 +14,8 @@ import {
     Scene,
     WebXRDefaultExperience,
     Engine,
-    Animation,
     AnimationGroup,
 } from "@babylonjs/core";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
 export class Game {
@@ -111,7 +109,11 @@ export class Game {
             sessionId: string
         ) => {
             console.log("player removed!", playerState, sessionId);
-            this.players.delete(sessionId);
+            const player = this.players.get(sessionId);
+            if (player) {
+                player.destroy();
+                this.players.delete(sessionId);
+            }
             this.adminMenu.setOffline(playerState.sessionId, true);
         };
 
@@ -245,37 +247,21 @@ export class Game {
             );
             AssetManager.setEnabled(this.environment, true);
 
-            // Animate scale
-            const anim = new Animation(
-                "oldEnvironmentOut",
-                "scaling",
-                60,
-                Animation.ANIMATIONTYPE_VECTOR3,
-                Animation.ANIMATIONLOOPMODE_CONSTANT
-            );
+            let animationGroup : AnimationGroup | undefined = 
+                oldEnvironment?.container.animationGroups.find(
+                    (ag) => ag.name === "LobbyDisassemble"
+                );
 
-            anim.setKeys([
-                {
-                    frame: 0,
-                    value: new Vector3(1, 1, 1),
-                },
-                {
-                    frame: 60,
-                    value: new Vector3(10, 10, 10),
-                },
-            ]);
+            if (!animationGroup)
+                throw new Error("No animation group found");
 
-            const animationGroup = new AnimationGroup("oldEnvironmentOutGroup");
-            for (const mesh of oldEnvironment!.meshes) {
-                animationGroup.addTargetedAnimation(anim, mesh);
-            }
-            animationGroup.normalize(0, 60);
+
             animationGroup.play(true);
+
             // When done, disable old environment
             animationGroup.onAnimationGroupLoopObservable.add(() => {
-                animationGroup.stop();
-                animationGroup.reset();
-                animationGroup.dispose();
+                animationGroup?.stop();
+                animationGroup?.reset();
                 AssetManager.setEnabled(oldEnvironment!, false);
                 
             });

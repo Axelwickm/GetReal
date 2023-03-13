@@ -16,6 +16,7 @@ import { NetworkRig } from "./hardware_rigs/NetworkRig";
 export class Player {
     scene: Scene;
     room: Room;
+    id: string;
 
     rig: HardwareRig;
 
@@ -34,6 +35,7 @@ export class Player {
         this.scene = scene;
         this.avatar = undefined;
         this.room = room;
+        this.id = playerState.sessionId;
 
         if (isMe) {
             this.rig = new XRRig(xr); // default
@@ -45,10 +47,12 @@ export class Player {
         debugAvatar.setEnabled(false);
         this.debugAvatar = debugAvatar;
 
-        room.send(HardwareRigUpdateMessageType, {
-            sessionId: room.sessionId,
-            rigType: this.rig.getRigType(),
-        });
+        if (isMe) {
+            room.send(HardwareRigUpdateMessageType, {
+                sessionId: room.sessionId,
+                rigType: this.rig.getRigType(),
+            });
+        }
 
         // Add listeners for player state changes
         playerState.onChange = () => {
@@ -64,7 +68,7 @@ export class Player {
             lastTime = Date.now();
         });
 
-        playerState.hardwareRig.listen("rigType", () => {
+        const setRig = () => {
             if (isMe) {
                 if (
                     playerState.hardwareRig.rigType === XRRig.getRigType() &&
@@ -82,9 +86,11 @@ export class Player {
                 this.avatar?.setRig(this.rig);
                 this.debugAvatar?.setRig(this.rig);
             }
-        });
+        };
 
-        playerState.avatar.listen("avatarType", () => {
+        playerState.hardwareRig.listen("rigType", setRig);
+
+        const setAvatar = () => {
             // hot-swappable avatars
             const avatarType = playerState.avatar.avatarType;
             if (
@@ -93,7 +99,14 @@ export class Player {
             ) {
                 this.setAvatar(avatarType, playerState.avatar.character);
             }
-        });
+        };
+
+        playerState.avatar.listen("avatarType", setAvatar);
+    }
+
+    destroy() {
+        this.avatar?.destroy();
+        this.debugAvatar?.destroy();
     }
 
     addOnChangeCallback(cb: () => void) {
@@ -143,7 +156,8 @@ export class Player {
             const fullBodyAvatar = new FullBodyAvatar(
                 this.scene,
                 this.rig,
-                character
+                character,
+                this.id
             );
             fullBodyAvatar.setEnabled(true);
             this.avatar = fullBodyAvatar;

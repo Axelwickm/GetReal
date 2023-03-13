@@ -1,7 +1,7 @@
 import { Avatar } from "./Avatar";
 import { AssetManager } from "../AssetManager";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
-import { Scene, AbstractMesh, Skeleton, TransformNode } from "@babylonjs/core";
+import { Scene, AbstractMesh, Skeleton, TransformNode, InstancedMesh } from "@babylonjs/core";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 
 // Constant map: Name -> index
@@ -39,7 +39,8 @@ const BONE_ASSIGNMENTS_ARRAY: Array<[string, number, number | null]> = [
 export class FullBodyAvatar extends Avatar {
     private skeleton?: Skeleton;
     private armatureBones?: Array<TransformNode>;
-    private parentMesh?: AbstractMesh;
+    private parent?: TransformNode;
+    private armature?: TransformNode;
 
     // Same order as BONE_ASSIGNMENTS_ARRAY
     private modelBoneOffsets: Array<Vector3> = [];
@@ -48,36 +49,84 @@ export class FullBodyAvatar extends Avatar {
 
     public cutenessFactor: number = 0;
 
-    constructor(scene: Scene, rig: HardwareRig, characterName: string) {
+    constructor(
+        scene: Scene,
+        rig: HardwareRig,
+        characterName: string,
+        id: string
+    ) {
         super(scene, rig);
 
         AssetManager.getInstance()
             .getCharacter(characterName)
             .then((character) => {
                 console.log("Spawned full body avatar", character);
-                this.parentMesh = character.mesh; // TODO: highly temporary. Should clone or instanciate, but ran into trouble with that.
-                if (character.skeleton === null)
-                    throw new Error("Skeleton is null");
-                this.skeleton = character.skeleton;
-                AssetManager.setEnabled(character, true, rig.isMe());
-                if (!this.parentMesh) throw new Error("Parent mesh is null");
-                if (!this.skeleton) throw new Error("Skeleton is null");
-                character.armature.computeWorldMatrix(true);
-                this.skeleton.computeAbsoluteTransforms();
-                //this.parentMesh.skeleton = this.skeleton;
-                // And for the children
-                /*for (let i = 0; i < this.parentMesh.getChildren().length; i++) {
-                    const child = this.parentMesh.getChildren()[i];
-                    if (child instanceof AbstractMesh) {
-                        console.log(
-                            "Setting skeleton for child",
-                            child.skeleton
-                        );
-                    }
-                }*/
+                //this.parent = new AbstractMesh(characterName + "_" + id, scene);
+                const instances = AssetManager.addAssetToScene(character, id);
+                if (!instances)
+                    throw new Error("No instances found");
+                this.parent = instances.rootNodes[0];
 
-                this.armatureBones =
-                    character.armature.getChildTransformNodes();
+
+                //if (character.skeleton === null)
+                //    throw new Error("Skeleton is null");
+                //this.skeleton = character.skeleton.clone(
+                //    characterName + "_" + id + "_skeleton"
+                //);
+                this.skeleton = instances.skeletons[0];
+                if (!this.skeleton)
+                    throw new Error("Skeleton is null");
+
+                /*const isInstancedMesh = (mesh: any): mesh is InstancedMesh =>
+                    mesh.getClassName() === "InstancedMesh";*/
+
+
+                /*character.mesh.instantiateHierarchy(
+                    null,
+                    {
+                        doNotInstantiate: false,
+                    },
+                    (source: TransformNode, clone: TransformNode) => {
+                        if (source.name === "Armature") {
+                            if (this.parent === undefined)
+                                throw new Error("Parent mesh is null");
+                            clone.parent = this.parent;
+                            this.armature = clone;
+                        }
+                        clone.name = source.name;
+                        console.log(clone);
+                        if (isInstancedMesh(clone)) {
+                            console.log("Is instanced mesh");
+                        }
+                    }
+                );*/
+
+                this.armature = this.parent?.getChildTransformNodes(
+                    false,
+                    (node) =>  node.name === "Armature"
+                )[0];
+
+                if (this.armature === undefined)
+                    throw new Error("Armature is null");
+
+                this.parent.setEnabled(true);
+
+                //for (let i = 0; i < this.skeleton.bones.length; i++) {
+                    //    const bone = this.skeleton.bones[i];
+                    // Find transform node with same name
+                    //    const transformNode = this.parent?.getChildTransformNodes(
+                    //     false,
+                        //    (node) => {
+                            //    return node.name.includes(bone.name);
+                        //  }
+                        //)[0];
+                    // bone.linkTransformNode(transformNode);
+                    //}
+
+                this.armature.computeWorldMatrix(true);
+                this.skeleton.computeAbsoluteTransforms();
+
+                this.armatureBones = this.armature.getChildTransformNodes();
                 this.modelBoneOffsets = Array(
                     BONE_ASSIGNMENTS_ARRAY.length
                 ).fill(Vector3.Zero());
@@ -113,22 +162,22 @@ export class FullBodyAvatar extends Avatar {
                             .getTranslation();
                         const length = Vector3.Distance(start, end);
                         const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                        if (boneInds)
+                        if (boneInds){
                             this.modelBoneLengths[boneInds[0]] = length;
+                        }
                     }
                 }
 
                 for (let i = 0; i < this.armatureBones.length; i++) {
                     const bone = this.armatureBones[i];
-                    bone.position = Vector3.Zero();
-                    bone.rotationQuaternion = Quaternion.Identity();
+                    //bone.position = Vector3.Zero();
+                    //bone.rotationQuaternion = Quaternion.Identity();
                 }
             });
     }
 
     destroy() {
-        // TODO: we should destory the mesh and skeleton, but right now we're not copying it.
-        this.setEnabled(false);
+        this.parent?.dispose();
     }
 
     static getAvatarType(): string {
@@ -141,7 +190,7 @@ export class FullBodyAvatar extends Avatar {
 
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
-        this.parentMesh?.setEnabled(enabled);
+        this.parent?.setEnabled(enabled);
     }
 
     update() {
