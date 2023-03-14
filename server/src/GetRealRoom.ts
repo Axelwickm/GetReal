@@ -1,5 +1,5 @@
 import { Room, Client } from "colyseus";
-import { ArraySchema } from "@colyseus/schema";
+import { ArraySchema, MapSchema } from "@colyseus/schema";
 
 import { GetRealSchema } from "./schema/GetRealSchema";
 import {
@@ -17,7 +17,7 @@ import {
     PlayerCalibrateMessageType,
     PlayerCalibrateMessage,
 } from "./schema/PlayerSchema";
-import { XSensReader, XSensData } from "./XSensReader";
+import { XSensReader, XSensData, XSENS_BONE_NAME_ARRAY } from "./XSensReader";
 import {
     AvatarUpdateMessageType,
     AvatarUpdateMessage,
@@ -58,13 +58,14 @@ export class GetRealRoom extends Room<GetRealSchema> {
         this.onMessage(
             PlayerSettingsUpdateMessageType,
             (client, message: PlayerSettingsUpdateMessage) => {
-                const playerState = this.state.players
-                    .get(message.sessionId);
+                const playerState = this.state.players.get(message.sessionId);
                 playerState?.updateFromSettingsMessage(message);
                 if (message.name) {
                     console.log("Player name is: ", message.name);
                     for (const otherPlayerState of this.state.players.values()) {
-                        if (otherPlayerState.cookieId === playerState.cookieId) {
+                        if (
+                            otherPlayerState.cookieId === playerState.cookieId
+                        ) {
                             // Same browser, meaning same session storage.
                             // Let already update the name here, to avoid confusion.
                             otherPlayerState.name = message.name;
@@ -123,14 +124,15 @@ export class GetRealRoom extends Room<GetRealSchema> {
         // If performerId is undefined, set the data for all performers
         this.state.players.forEach((player, sessionId) => {
             if (
-                player.hardwareRig.rigType === "xsens_xr" &&
-                player.performerId === performerId ||
+                (player.hardwareRig.rigType === "xsens_xr" &&
+                    player.performerId === performerId) ||
                 (performerId === undefined && player.performerId !== -1)
             ) {
                 // Update player
-                player.bonePositions = new ArraySchema<Vector3Schema>();
+                player.bonePositions = new MapSchema<Vector3Schema>();
                 for (let i = 0; i < data.bonePositions.length; i++) {
-                    player.bonePositions.push(
+                    player.bonePositions.set(
+                        XSENS_BONE_NAME_ARRAY[i],
                         new Vector3Schema(
                             data.bonePositions[i][0],
                             data.bonePositions[i][1],
@@ -139,9 +141,10 @@ export class GetRealRoom extends Room<GetRealSchema> {
                     );
                 }
 
-                player.boneRotations = new ArraySchema<QuaternionSchema>();
+                player.boneRotations = new MapSchema<QuaternionSchema>();
                 for (let i = 0; i < data.boneRotations.length; i++) {
-                    player.boneRotations.push(
+                    player.boneRotations.set(
+                        XSENS_BONE_NAME_ARRAY[i],
                         new QuaternionSchema(
                             data.boneRotations[i][0],
                             data.boneRotations[i][1],

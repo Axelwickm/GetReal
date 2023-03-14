@@ -1,6 +1,7 @@
 import { PlayerSchema } from "./schema/PlayerSchema";
 import { HardwareRig } from "./hardware_rigs/HardwareRig";
 import { Avatar } from "./avatars/Avatar";
+import { Game } from "./Game";
 
 import { DebugAvatar } from "./avatars/DebugAvatar";
 import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
@@ -15,8 +16,11 @@ import { NetworkRig } from "./hardware_rigs/NetworkRig";
 
 export class Player {
     scene: Scene;
+    game: Game;
     room: Room;
     id: string;
+
+    state: PlayerSchema;
 
     rig: HardwareRig;
 
@@ -28,19 +32,22 @@ export class Player {
     constructor(
         playerState: PlayerSchema,
         scene: Scene,
+        game: Game,
         room: Room,
         isMe: boolean,
         xr: WebXRDefaultExperience
     ) {
         this.scene = scene;
         this.avatar = undefined;
+        this.game = game;
         this.room = room;
         this.id = playerState.sessionId;
+        this.state = playerState;
 
         if (isMe) {
             this.rig = new XRRig(xr); // default
         } else {
-            this.rig = new NetworkRig();
+            this.rig = new NetworkRig(xr); // TODO: xr should not have to be passed here
         }
 
         const debugAvatar = new DebugAvatar(this.scene, this.rig);
@@ -113,9 +120,18 @@ export class Player {
         this.onChangeCallbacks.push(cb);
     }
 
-    update() {
+    update(deltaTime: number) {
         this.avatar?.update();
         this.debugAvatar?.update();
+
+        this.rig.update(this.state, this.room, deltaTime);
+
+        if (this.rig.aTriggered)
+            this.calibrate(true);
+
+        if (this.rig.bTriggered)
+            this.game.setDebugMode(!this.game.getDebugMode());
+
     }
 
     isMe(): boolean {
@@ -137,7 +153,6 @@ export class Player {
     }
 
     setAvatar(avatarType?: string, character?: string) {
-        character = "BlueMonsterGirl"; // TODO: should not be hardcoded
         console.log(
             "Setting avatar to " + avatarType + " with character " + character
         );
@@ -150,9 +165,8 @@ export class Player {
                 "Debug avatar is not hot-swappable, since every player already gets one"
             );
         } else if (avatarType === FullBodyAvatar.getAvatarType()) {
-            if (character === undefined) {
+            if (character === undefined)
                 throw new Error("Character is undefined");
-            }
             const fullBodyAvatar = new FullBodyAvatar(
                 this.scene,
                 this.rig,
@@ -162,7 +176,14 @@ export class Player {
             fullBodyAvatar.setEnabled(true);
             this.avatar = fullBodyAvatar;
         } else if (avatarType === SimpleAvatar.getAvatarType()) {
-            const simpleAvatar = new SimpleAvatar(this.scene, this.rig);
+            if (character === undefined)
+                throw new Error("Character is undefined");
+            const simpleAvatar = new SimpleAvatar(
+                this.scene,
+                this.rig,
+                character,
+                this.id
+            );
             simpleAvatar.setEnabled(true);
             this.avatar = simpleAvatar;
         }

@@ -1,16 +1,17 @@
 import { HardwareRig } from "./HardwareRig";
 import { PlayerSchema } from "../schema/PlayerSchema";
+import { Conversion } from "../Conversion";
 
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 import { Room } from "colyseus.js";
-import { Conversion } from "../Conversion";
+import { WebXRDefaultExperience } from "@babylonjs/core";
 
 export class NetworkRig extends HardwareRig {
-    cameraTransform: [Vector3, Quaternion] = [new Vector3(), new Quaternion()];
-    boneTransforms: Array<[Vector3, Quaternion]> = [];
+    boneTransforms: Map<string, { position: Vector3; rotation: Quaternion }> =
+        new Map();
 
-    constructor() {
-        super();
+    constructor(xr: WebXRDefaultExperience) {
+        super(xr);
     }
 
     static getRigType(): string {
@@ -27,25 +28,31 @@ export class NetworkRig extends HardwareRig {
 
     async calibrate(room: Room) {}
 
+    getBone(name: string): { position: Vector3; rotation: Quaternion } | null {
+        const bone = this.boneTransforms.get(name);
+        if (bone) return bone;
+        return null;
+    }
+
+    getAllBones(): Map<string, { position: Vector3; rotation: Quaternion }> {
+        return this.boneTransforms;
+    }
+
     networkUpdate(playerState: PlayerSchema, room: Room, deltaTime: number) {
-        this.cameraTransform = [
-            Conversion.schemaToBabylonVector3(playerState.cameraPosition),
-            Conversion.schemaToBabylonQuaternion(playerState.cameraRotation),
-        ];
-
         // Zip playerState.bonePositions and playerState.boneRotations
-        this.boneTransforms = playerState.bonePositions.map(
-            (position, index) => {
-                return [
-                    Conversion.schemaToBabylonVector3(position),
-                    Conversion.schemaToBabylonQuaternion(
-                        playerState.boneRotations[index]
-                    ),
-                ];
-            }
-        );
+        this.boneTransforms = new Map<
+            string,
+            { position: Vector3; rotation: Quaternion }
+        >();
+        for (const [key, position] of playerState.bonePositions.entries()) {
+            const rotation = playerState.boneRotations.get(key)!;
+            this.boneTransforms.set(key, {
+                position: Conversion.schemaToBabylonVector3(position),
+                rotation: Conversion.schemaToBabylonQuaternion(rotation),
+            });
+        }
 
-        if (this.boneTransforms.length > 0) {
+        if (this.boneTransforms.size > 0) {
             // Integrate between local hardware and network
             const headToXRPosition = Conversion.schemaToBabylonVector3(
                 playerState.hardwareRig.headToXRPosition
@@ -63,8 +70,9 @@ export class NetworkRig extends HardwareRig {
                 playerState.hardwareRig.origoToXRPosition
             );
 
-            this.boneTransforms = this.boneTransforms.map((transform) => {
-                let [position, rotation] = transform;
+            for (const [key, value] of this.boneTransforms) {
+                let position = value.position;
+                const rotation = value.rotation;
                 position = position.clone();
                 position = position.add(headToXRPosition);
                 position = position.add(headToXROffset);
@@ -74,16 +82,13 @@ export class NetworkRig extends HardwareRig {
                     position
                 );
 
-                return [position, headToXRRotation.multiply(rotation)];
-            });
+                this.boneTransforms.set(key, {
+                    position: position,
+                    rotation: headToXRRotation.multiply(rotation),
+                });
+            }
         }
     }
 
-    getCameraTransform(): [Vector3, Quaternion] {
-        return this.cameraTransform;
-    }
-
-    getBoneTransforms(): Array<[Vector3, Quaternion]> {
-        return this.boneTransforms;
-    }
+    update(state: PlayerSchema, room: Room, deltaTime: number) {}
 }

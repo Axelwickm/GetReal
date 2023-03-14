@@ -25,8 +25,17 @@ type AssetRef = {
     defferedReject?: (reason?: any) => void;
 };
 
-const CONCURRENT_LOADS = 4;
+const CONCURRENT_LOADS = 3;
 const ASSETS: Array<AssetRef> = [
+    {
+        name: "Nao",
+        path: "Avatars/Nao.glb",
+        type: "character",
+        meMask: [
+            "Body",
+        ],
+        rhs: false,
+    },
     {
         name: "Lobbys",
         path: "Environments/Lobbys.glb",
@@ -49,7 +58,7 @@ const ASSETS: Array<AssetRef> = [
     },
     {
         name: "BlueMonsterGirl",
-        path: "FullBodyAvatars/BlueMonsterGirl.glb",
+        path: "Avatars/BlueMonsterGirl.glb",
         type: "character",
         meMask: [
             "EyeLeft",

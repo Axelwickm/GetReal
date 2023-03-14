@@ -127,7 +127,6 @@ export class AdminMenu {
     }
 
     show() {
-        console.log("showing admin menu");
         this.adminMenuElement.style.display = "block";
         this.enabled = true;
         for (const [_playerId, player] of this.players) {
@@ -280,6 +279,7 @@ export class AdminMenu {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
                 avatarType: SimpleAvatar.getAvatarType(),
+                character: "Nao"
             });
         });
 
@@ -287,6 +287,7 @@ export class AdminMenu {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
                 avatarType: FullBodyAvatar.getAvatarType(),
+                character: "BlueMonsterGirl"
             });
         });
 
@@ -344,11 +345,6 @@ export class AdminMenu {
         });
 
         playerState.avatar.listen("avatarType", () => {
-            console.log(
-                "avatarType changed",
-                playerState.sessionId,
-                playerState.avatar.avatarType
-            );
             if (this.enabled)
                 this.updateAvatarElement(
                     playerState.sessionId,
@@ -357,11 +353,6 @@ export class AdminMenu {
         });
 
         playerState.hardwareRig.listen("rigType", () => {
-            console.log(
-                "rigType changed",
-                playerState.sessionId,
-                playerState.hardwareRig.rigType
-            );
             if (this.enabled)
                 this.updateHardwareRigElement(
                     playerState.sessionId,

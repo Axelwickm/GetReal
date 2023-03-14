@@ -1,40 +1,9 @@
 import { Avatar } from "./Avatar";
 import { AssetManager } from "../AssetManager";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
-import { Scene, Skeleton, TransformNode, InstancedMesh } from "@babylonjs/core";
+
+import { Scene, Skeleton, TransformNode } from "@babylonjs/core";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
-
-// Constant map: Name -> index
-// Name, index, and parent index
-const BONE_ASSIGNMENTS_MAP: Map<string, [number, number | null]> = new Map([
-    ["Hips", [0, null]],
-    ["L5", [1, 0]],
-    ["L3", [2, 1]],
-    ["T12", [3, 2]],
-    ["T8", [4, 3]],
-    ["Neck", [5, 4]],
-    ["Head", [6, 5]],
-    ["RightShoulder", [7, 4]],
-    ["RightUpperArm", [8, 7]],
-    ["RightForearm", [9, 8]],
-    ["RightHand", [10, 9]],
-    ["LeftShoulder", [11, 4]],
-    ["LeftUpperArm", [12, 11]],
-    ["LeftForearm", [13, 12]],
-    ["LeftHand", [14, 13]],
-    ["RightUpperLeg", [15, 0]],
-    ["RightLowerLeg", [16, 15]],
-    ["RightFoot", [17, 16]],
-    ["RightToe", [18, 17]],
-    ["LeftUpperLeg", [19, 0]],
-    ["LeftLowerLeg", [20, 19]],
-    ["LeftFoot", [21, 20]],
-    ["LeftToe", [22, 21]],
-]);
-
-const BONE_ASSIGNMENTS_ARRAY: Array<[string, number, number | null]> = [
-    ...BONE_ASSIGNMENTS_MAP,
-].map(([name, [index, parentIndex]]) => [name, index, parentIndex]);
 
 export class FullBodyAvatar extends Avatar {
     private skeleton?: Skeleton;
@@ -42,10 +11,14 @@ export class FullBodyAvatar extends Avatar {
     private parent?: TransformNode;
     private armature?: TransformNode;
 
-    // Same order as BONE_ASSIGNMENTS_ARRAY
-    private modelBoneOffsets: Array<Vector3> = [];
-    private modelBoneAngles: Array<Quaternion> = [];
-    private modelBoneLengths: Array<number> = [];
+    private modelBones: Map<
+        string,
+        {
+            offset: Vector3;
+            rotation: Quaternion;
+            length: number;
+        }
+    > = new Map();
 
     public cutenessFactor: number = 0;
 
@@ -60,7 +33,7 @@ export class FullBodyAvatar extends Avatar {
         AssetManager.getInstance()
             .getCharacter(characterName)
             .then((character) => {
-                console.log("Spawned full body avatar", character);
+                console.log("Creating full body avatar: " + characterName);
                 const instances = AssetManager.addAssetToScene(character, id);
                 if (!instances) throw new Error("No instances found");
 
@@ -68,46 +41,33 @@ export class FullBodyAvatar extends Avatar {
                     AssetManager.applyMeMask(character, instances, true);
 
                 this.parent = instances.rootNodes[0];
-                this.skeleton = instances.skeletons[0];
+                this.skeleton = instances.skeletons[0]; // TODO: might be multiple
                 if (!this.skeleton) throw new Error("Skeleton is null");
 
                 this.armature = this.parent?.getChildTransformNodes(
                     false,
                     (node) => node.name === "Armature"
                 )[0];
-
-                if (!this.armature)
-                    throw new Error("Armature is null");
+                if (!this.armature) throw new Error("Armature is null");
 
                 this.parent.setEnabled(true);
 
+                // Get initial bone transforms
                 this.armature.computeWorldMatrix(true);
                 this.skeleton.computeAbsoluteTransforms();
 
-                // Get initial bone transforms
                 this.armatureBones = this.armature.getChildTransformNodes();
-                this.modelBoneOffsets = Array(
-                    BONE_ASSIGNMENTS_ARRAY.length
-                ).fill(Vector3.Zero());
-                this.modelBoneAngles = Array(
-                    BONE_ASSIGNMENTS_ARRAY.length
-                ).fill(Quaternion.Identity());
-                this.modelBoneLengths = Array(
-                    BONE_ASSIGNMENTS_ARRAY.length
-                ).fill(0);
 
                 for (let i = 0; i < this.armatureBones.length; i++) {
                     const bone = this.armatureBones[i];
                     bone.computeWorldMatrix(true);
-                    const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                    if (boneInds) {
-                        // Set the bone's rotation to the model's bone rotation
-                        this.modelBoneOffsets[boneInds[0]] =
-                            bone.position.clone();
-                        this.modelBoneAngles[boneInds[0]] =
+                    this.modelBones.set(bone.name, {
+                        offset: bone.position.clone(),
+                        rotation:
                             bone.absoluteRotationQuaternion?.clone() ||
-                            Quaternion.Identity();
-                    }
+                            Quaternion.Identity(),
+                        length: 0,
+                    });
                 }
 
                 for (let i = 0; i < this.skeleton?.bones.length; i++) {
@@ -120,18 +80,9 @@ export class FullBodyAvatar extends Avatar {
                             .getAbsoluteTransform()
                             .getTranslation();
                         const length = Vector3.Distance(start, end);
-                        const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                        if (boneInds) {
-                            this.modelBoneLengths[boneInds[0]] = length;
-                        }
+                        const boneNode = this.modelBones.get(bone.name);
+                        if (boneNode) boneNode.length = length;
                     }
-                }
-
-                for (let i = 0; i < this.armatureBones.length; i++) {
-                    // TODO: check if needed, else remove
-                    const bone = this.armatureBones[i];
-                    //bone.position = Vector3.Zero();
-                    //bone.rotationQuaternion = Quaternion.Identity();
                 }
             });
     }
@@ -155,47 +106,41 @@ export class FullBodyAvatar extends Avatar {
 
     update() {
         if (this.armatureBones) {
-            const globalBoneTransforms = this.rig.getBoneTransforms();
-            if (globalBoneTransforms.length === 0) return;
-
             // For each tranform node child of this.armature
             for (let i = 0; i < this.armatureBones.length; i++) {
                 const bone = this.armatureBones[i];
+                const hwRigBone = this.rig.getBone(bone.name);
+                const modelBone = this.modelBones.get(bone.name);
 
                 const boneParent: TransformNode | null =
                     bone.parent as TransformNode;
-                const boneInds = BONE_ASSIGNMENTS_MAP.get(bone.name);
-                if (boneInds && boneParent) {
-                    const thisGlobal = globalBoneTransforms[boneInds[0]];
-                    if (boneInds[1] !== null) {
+                const parentHw = this.rig.getBone(boneParent.name);
+                if (hwRigBone && modelBone) {
+                    if (boneParent !== null && parentHw !== null) {
                         // Location
                         const parentBoneInv = boneParent
                             .getWorldMatrix()
                             .invert();
 
                         bone.position = Vector3.TransformCoordinates(
-                            thisGlobal[0],
+                            hwRigBone.position,
                             parentBoneInv
                         );
 
                         // Rotation
-                        const naturalRotation =
-                            this.modelBoneAngles[boneInds[0]];
-
                         bone.rotationQuaternion =
                             boneParent.absoluteRotationQuaternion.multiply(
-                                thisGlobal[1].multiply(naturalRotation)
+                                hwRigBone.rotation.multiply(modelBone.rotation)
                             );
 
                         //this.cutenessFactor = Math.sin(new Date().getTime() / 1000) + 1;
 
                         // Scale
-                        const parentGlobal = globalBoneTransforms[boneInds[1]];
                         const globalDist = Vector3.Distance(
-                            thisGlobal[0],
-                            parentGlobal[0]
+                            hwRigBone.position,
+                            parentHw.position
                         );
-                        const localDist = this.modelBoneLengths[boneInds[0]];
+                        const localDist = modelBone.length;
                         let scale = globalDist / localDist;
                         if (this.cutenessFactor > 0)
                             scale = Math.pow(scale, 1 - this.cutenessFactor);
@@ -208,8 +153,8 @@ export class FullBodyAvatar extends Avatar {
 
                         bone.computeWorldMatrix(true);
                     } else {
-                        bone.position = thisGlobal[0];
-                        bone.rotationQuaternion = thisGlobal[1];
+                        bone.position = hwRigBone.position;
+                        bone.rotationQuaternion = hwRigBone.rotation;
                     }
                 }
             }

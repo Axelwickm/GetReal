@@ -12,7 +12,7 @@ export class DebugAvatar extends Avatar {
     hipCube?: Mesh;
 
     boxParent?: TransformNode;
-    boneCubes: Array<Mesh> = []; 
+    boneCubes: Array<Mesh> = [];
 
     created: boolean = false;
 
@@ -65,54 +65,76 @@ export class DebugAvatar extends Avatar {
 
     update() {
         if (!this.enabled) return;
-        const cameraTransform = this.rig.getCameraTransform();
-        this.cameraCube!.position = cameraTransform[0].add(
-            Vector3.Forward().rotateByQuaternionToRef(cameraTransform[1], Vector3.Zero()).scale(0.5)
-        );
-        this.cameraCube!.rotationQuaternion = cameraTransform[1].clone().multiply(
-            Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2)
-        ).multiply(Quaternion.RotationAxis(Vector3.Up(), Math.PI / 4));
+        const cameraTransform = this.rig.getBone("Head");
+        if (cameraTransform) {
+            this.cameraCube!.position = cameraTransform.position.add(
+                Vector3.Forward()
+                    .rotateByQuaternionToRef(
+                        cameraTransform.rotation,
+                        Vector3.Zero()
+                    )
+                    .scale(0.5)
+            );
+            this.cameraCube!.rotationQuaternion = cameraTransform.rotation
+                .clone()
+                .multiply(
+                    Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2)
+                )
+                .multiply(Quaternion.RotationAxis(Vector3.Up(), Math.PI / 4));
 
-        this.cameraAxis!.position = cameraTransform[0];
-        this.cameraAxis!.rotationQuaternion = cameraTransform[1];
-
-        const boneTransforms = this.rig.getBoneTransforms();
-
-        // Create number of boxes needed
-        while (this.boneCubes.length < boneTransforms.length) {
-            const boneCube = MeshBuilder.CreateBox("box", {}, this.scene);
-            boneCube.parent = this.boxParent!;
-            boneCube.scaling = new Vector3(0.06, 0.03, 0.03);
-            boneCube.material = this.scene.getMaterialByName("black")!;
-            let cubeAxis = MeshPrimitiveGenerator.axes(this.scene);
-            cubeAxis.parent = boneCube;
-            cubeAxis.scaling = new Vector3(2, 2, 2);
-            this.boneCubes.push(boneCube);
+            this.cameraAxis!.position = cameraTransform.position;
+            this.cameraAxis!.rotationQuaternion = cameraTransform.rotation;
         }
 
-        // Remove extra boxes
-        for (let i = 0; i < this.boneCubes.length - boneTransforms.length; i++) {
-            this.boneCubes.pop()!.dispose();
-        }
+        const boneTransforms = this.rig.getAllBones();
+        if (boneTransforms) {
+            // Create number of boxes needed
+            while (this.boneCubes.length < boneTransforms.size) {
+                const boneCube = MeshBuilder.CreateBox("box", {}, this.scene);
+                boneCube.parent = this.boxParent!;
+                boneCube.scaling = new Vector3(0.06, 0.03, 0.03);
+                boneCube.material = this.scene.getMaterialByName("black")!;
+                let cubeAxis = MeshPrimitiveGenerator.axes(this.scene);
+                cubeAxis.parent = boneCube;
+                cubeAxis.scaling = new Vector3(2, 2, 2);
+                this.boneCubes.push(boneCube);
+            }
 
-        if (boneTransforms.length === 0 && this.hipCube?.isEnabled()) {
-            this.hipCube!.setEnabled(false);
-         }
-        else if (boneTransforms.length !== 0 && !this.hipCube?.isEnabled()) {
-            this.hipCube!.setEnabled(true);
-        }
+            // Remove extra boxes
+            for (
+                let i = 0;
+                i < this.boneCubes.length - boneTransforms.size;
+                i++
+            ) {
+                this.boneCubes.pop()!.dispose();
+            }
 
-        // Transform poxes
-        if (boneTransforms.length !== 0) {
-            this.hipCube!.position = boneTransforms[0][0];
-            this.hipCube!.rotationQuaternion = boneTransforms[0][1];
+            if (boneTransforms.size === 0 && this.hipCube?.isEnabled()) {
+                this.hipCube!.setEnabled(false);
+            } else if (
+                boneTransforms.size !== 0 &&
+                !this.hipCube?.isEnabled()
+            ) {
+                this.hipCube!.setEnabled(true);
+            }
 
-            if (boneTransforms.length > this.boneCubes.length)
-                throw new Error("Too many bone transforms!");
+            // Transform poxes
+            if (boneTransforms.size !== 0) {
+                const hips = boneTransforms.get("Hips");
+                if (hips) {
+                    this.hipCube!.position = hips.position;
+                    this.hipCube!.rotationQuaternion = hips.rotation;
+                }
 
-            for (let i = 0; i < boneTransforms.length; i++) {
-                this.boneCubes[i].position = boneTransforms[i][0];
-                this.boneCubes[i].rotationQuaternion = boneTransforms[i][1];
+                if (boneTransforms.size > this.boneCubes.length)
+                    throw new Error("Too many bone transforms!");
+
+                let i = 0;
+                for (let [_key, value] of boneTransforms) {
+                    this.boneCubes[i].position = value.position;
+                    this.boneCubes[i].rotationQuaternion = value.rotation;
+                    i++;
+                }
             }
         }
     }

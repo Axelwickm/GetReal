@@ -23,11 +23,9 @@ export class Game {
     private xr: WebXRDefaultExperience;
     private persitentData: PersistantData = PersistantData.getInstance();
 
-    private aPressed: boolean = false;
-    private bPressed: boolean = false;
-
     private adminMenu: AdminMenu = new AdminMenu(this);
     private players: Map<string, Player> = new Map();
+    private me: Player | undefined;
     private room?: Room<GetRealSchema>;
 
     private environmentName?: string = undefined;
@@ -58,8 +56,10 @@ export class Game {
             // add player
             this.players.set(
                 sessionId,
-                new Player(playerState, this.scene, room, isMe, this.xr)
+                new Player(playerState, this.scene, this, room, isMe, this.xr)
             );
+
+            if (isMe) this.me = this.players.get(sessionId);
 
             if (isMe || playerState.cookieId !== "undefined") {
                 this.adminMenu.registerPlayer(playerState, isMe);
@@ -76,7 +76,7 @@ export class Game {
             if (isMe) {
                 if (!this.room)
                     throw new Error("Room not set when trying to send player introduction message");
-                
+
                 this.room.send(PlayerSettingsUpdateMessageType, {
                     sessionId: this.room.sessionId,
                     cookieId: this.persitentData.data.cookieId,
@@ -145,9 +145,9 @@ export class Game {
         }
     }
 
-    update(): void {
+    update(deltaTime: number): void {
         this.players.forEach((player) => {
-            player.update();
+            player.update(deltaTime);
         });
     }
 
@@ -160,27 +160,29 @@ export class Game {
         this.debugMode = debugMode;
         this.players.forEach((player) => {
             player.debugAvatar?.setEnabled(debugMode);
+            if (player.rig.isMe())
+                player.rig.setControllerVisibility(debugMode);
         });
         this.adminMenu.setDebugMode(debugMode);
     }
 
     run(engine: Engine) {
         let avgTotal = 0;
+        let lastStartTime = Date.now();
         let lastTime = Date.now();
         let lastUpdate = Date.now();
 
         // run the main render loop
         engine.runRenderLoop(async () => {
             const startTime = Date.now();
-            this.checkXRInput();
-            this.update();
+            this.update(startTime - lastStartTime);
+            lastStartTime = startTime;
             const updateFinishTime = Date.now();
             this.scene.render();
             const renderFinishTime = Date.now();
 
-
             const gameUpdateTime = updateFinishTime - startTime;
-            const renderTime =  renderFinishTime - updateFinishTime;
+            const renderTime = renderFinishTime - updateFinishTime;
 
             avgTotal = avgTotal * 0.95 + (Date.now() - lastTime) * 0.05;
             lastTime = Date.now();
@@ -188,7 +190,6 @@ export class Game {
             // Update FPS counter
             if (Date.now() - lastUpdate > 2000) {
                 const fps = Math.round(1000 / avgTotal);
-                lastTime = Date.now();
                 lastUpdate = Date.now();
                 this.updateServer(fps, gameUpdateTime, renderTime);
             }
@@ -204,23 +205,6 @@ export class Game {
                 renderTime: renderTime,
             });
         }
-    }
-
-    checkXRInput() {
-        // TODO: move this to hw rig
-        this.xr.input.controllers.forEach((controller) => {
-            if (controller.inputSource.handedness === "left") {
-            } else if (controller.inputSource.handedness === "right") {
-                //   https://www.w3.org/TR/webxr-gamepads-module-1/
-                const a = controller.inputSource.gamepad?.buttons[4]?.pressed ?? false;
-                if (a && !this.aPressed) this.calibrate(true);
-                this.aPressed = a ?? false;
-
-                const b = controller.inputSource.gamepad?.buttons[5]?.pressed ?? false;
-                if (b && !this.bPressed) this.setDebugMode(!this.debugMode);
-                this.bPressed = b ?? false;
-            }
-        });
     }
 
     async setEnvironment(environment: string) {
@@ -247,7 +231,7 @@ export class Game {
             );
             AssetManager.setEnabled(this.environment, true);
 
-            let animationGroup : AnimationGroup | undefined = 
+            let animationGroup: AnimationGroup | undefined =
                 oldEnvironment?.container.animationGroups.find(
                     (ag) => ag.name === "LobbyDisassemble"
                 );
@@ -263,7 +247,7 @@ export class Game {
                 animationGroup?.stop();
                 animationGroup?.reset();
                 AssetManager.setEnabled(oldEnvironment!, false);
-                
+
             });
         } else {
             // No animation, since this is the first scene

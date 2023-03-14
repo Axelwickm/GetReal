@@ -34,6 +34,33 @@ const MvnBodySegmentCount = 23;
 const MvnFingerSegmentCount = 40;
 const MvnPropSegmentCount = 4;
 
+export const XSENS_BONE_NAME_ARRAY = [
+    "Hips",
+    "L5",
+    "L3",
+    "T12",
+    "T8",
+    "Neck",
+    "Head",
+    "RightShoulder",
+    "RightUpperArm",
+    "RightForearm",
+    "RightHand",
+    "LeftShoulder",
+    "LeftUpperArm",
+    "LeftForearm",
+    "LeftHand",
+    "RightUpperLeg",
+    "RightLowerLeg",
+    "RightFoot",
+    "RightToe",
+    "LeftUpperLeg",
+    "LeftLowerLeg",
+    "LeftFoot",
+    "LeftToe",
+];
+
+
 /**
  * This class is responsible for reading data from the XSens suit from an UDP socket.
  *
@@ -59,33 +86,6 @@ export class XSensReader {
     bonePositions: Array<Vector3> = [];
     boneRotations: Array<Quaternion> = [];
     timestamp: number | undefined = undefined;
-
-    /*
-     *  0: Pelvis
-     *  1: L5
-     *  2: L3
-     *  3: T12
-     *  4: T8
-     *  5: Neck
-     *  6: Head
-     *  7: Right Shoulder
-     *  8: Right Upper Arm
-     *  9: Right Forearm
-     *  10: Right Hand
-     *  11: Left Shoulder
-     *  12: Left Upper Arm
-     *  13: Left Forearm
-     *  14: Left Hand
-     *  15: Right Upper Leg
-     *  16: Right Lower Leg
-     *  17: Right Foot
-     *  18: Right Toe
-     *  19: Left Upper Leg
-     *  20: Left Lower Leg
-     *  21: Left Foot
-     *  22: Left Toe
-     *
-     */
 
     constructor(port?: number) {
         this.port = port || this.port;
