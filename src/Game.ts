@@ -8,6 +8,7 @@ import {
     PlayerCalibrateMessageType,
     PlayerCalibrateMessage,
 } from "./schema/PlayerSchema";
+import { Peer2Peer } from "./Peer2Peer";
 
 import { Room } from "colyseus.js";
 import {
@@ -22,6 +23,7 @@ export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
     private persitentData: PersistantData = PersistantData.getInstance();
+    private peer2peer?: Peer2Peer;
 
     private adminMenu: AdminMenu = new AdminMenu(this);
     private players: Map<string, Player> = new Map();
@@ -44,6 +46,7 @@ export class Game {
         this.room = room;
         this.adminMenu.setRoom(room);
         this.environmentName = room.state.room.environment;
+        this.peer2peer = new Peer2Peer(room.sessionId);
 
         // Watch for incoming network changes
         room.state.players.onAdd = (
@@ -60,6 +63,7 @@ export class Game {
             );
 
             if (isMe) this.me = this.players.get(sessionId);
+            else this.peer2peer!.connectToPeer(sessionId);
 
             if (isMe || playerState.cookieId !== "undefined") {
                 this.adminMenu.registerPlayer(playerState, isMe);
@@ -113,6 +117,7 @@ export class Game {
             if (player) {
                 player.destroy();
                 this.players.delete(sessionId);
+                this.peer2peer!.disconnectFromPeer(sessionId);
             }
             this.adminMenu.setOffline(playerState.sessionId, true);
         };

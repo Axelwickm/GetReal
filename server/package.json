@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@colyseus/uwebsockets-transport": "^0.14.29",
-    "colyseus": "^0.14.24"
+    "colyseus": "^0.14.24",
+    "peer": "^1.0.0",
+    "ws": "^8.13.0"
   }
 }

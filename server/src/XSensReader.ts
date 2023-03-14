@@ -111,7 +111,7 @@ export class XSensReader {
         this.socket.on("listening", () => {
             const address = this.socket.address();
             console.log(
-                `[XSensReader] Listening on ${address.address}:${address.port}`
+                `[XSensReader] XSensReader Listening on ${address.address}:${address.port}`
             );
         });
 
