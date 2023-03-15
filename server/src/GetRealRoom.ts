@@ -63,7 +63,7 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 if (message.name) {
                     console.log("Player name is: ", message.name);
                     for (const otherPlayerState of this.state.players.values()) {
-                        if (
+                        if (otherPlayerState?.cookieId && playerState?.cookieId &&
                             otherPlayerState.cookieId === playerState.cookieId
                         ) {
                             // Same browser, meaning same session storage.
