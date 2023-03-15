@@ -83,6 +83,12 @@ export class PlayerSchema extends Schema {
         this.fps = message.fps ?? this.fps;
         this.updateTime = message.updateTime ?? this.updateTime;
         this.renderTime = message.renderTime ?? this.renderTime;
+
+        if (message.errors) {
+            for (const error of message.errors) {
+                this.errors.push(error);
+            }
+        }
     }
 
     updateFromTransformMessage(message: PlayerTransformUpdateMessage) {

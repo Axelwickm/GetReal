@@ -257,6 +257,19 @@ export class AdminMenu {
             });
         });
 
+        // Errors
+        const errorsElement = playerElement.querySelector(
+            ".errors"
+        ) as HTMLInputElement;
+        errorsElement.addEventListener("click", () => {
+            // Log to console
+            console.error("Errors for player " + playerState.name + " " + playerState.sessionId + " ("+playerState.errors.length+")");
+            for (const error of playerState.errors) {
+                console.error(error);
+            }
+        });
+
+
         // Avatar changes
         const noAvatar = playerElement.querySelector(
             ".noAvatar"
@@ -288,6 +301,15 @@ export class AdminMenu {
                 sessionId: playerState.sessionId,
                 avatarType: FullBodyAvatar.getAvatarType(),
                 character: "BlueMonsterGirl"
+            });
+        });
+
+        const CalibrateElement = playerElement.querySelector(
+            ".calibrate"
+        ) as HTMLInputElement;
+        CalibrateElement.addEventListener("click", () => {
+            this.msgCalibrate({
+                sessionId: playerState.sessionId,
             });
         });
 
@@ -663,6 +685,14 @@ export class AdminMenu {
             ".rightControllerBatteryLevel"
         );
         // TODO
+        
+        const errorsElement = this.getPlayerElement(sid, ".errors");
+        errorsElement.innerHTML = String(player.errors.length);
+        if (player.errors.length > 0 && !errorsElement.classList.contains("hasErrors")) {
+            errorsElement.classList.add("hasErrors");
+        } else if (player.errors.length === 0 && errorsElement.classList.contains("hasErrors")) {
+            errorsElement.classList.remove("hasErrors");
+        }
 
         const fpsElement = this.getPlayerElement(sid, ".fps");
         fpsElement.innerHTML = String(player.fps);

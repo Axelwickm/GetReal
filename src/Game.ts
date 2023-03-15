@@ -38,6 +38,26 @@ export class Game {
     constructor(scene: Scene, xr: WebXRDefaultExperience) {
         this.scene = scene;
         this.xr = xr;
+
+        const _this = this;
+        window.addEventListener('error', function(errorEvent) {
+            const errorMessage = `Error: ${errorEvent.message}\nSource: ${errorEvent.filename}\nLine: ${errorEvent.lineno}\nColumn: ${errorEvent.colno}\nStack Trace: ${errorEvent.error.stack}`;
+            if (_this.room){
+                _this.room.send(PlayerSettingsUpdateMessageType, {
+                    sessionId: _this.room.sessionId,
+                    errors: [errorMessage]
+                });
+            }
+        });
+        window.addEventListener('unhandledrejection', function(event) {
+          const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
+          if (_this.room) {
+            _this.room.send(PlayerSettingsUpdateMessageType, {
+              sessionId: _this.room.sessionId,
+              errors: [errorMessage]
+            });
+          }
+        });
     }
 
     setRoom(room: Room<GetRealSchema>) {
