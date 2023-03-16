@@ -15,8 +15,6 @@ export type PlayerSettingsUpdateMessage = {
     performerId?: number;
 
     headsetBatteryLevel?: number;
-    leftControllerBatteryLevel?: number;
-    rightControllerBatteryLevel?: number;
 
     fps?: number;
     updateTime?: number; // ms
@@ -48,9 +46,7 @@ export class PlayerSchema extends Schema {
     @type(HardwareRigSchema) hardwareRig = new HardwareRigSchema();
 
     // Can only updated by client
-    @type("number") headsetBatteryLevel: number = 0;
-    @type("number") leftControllerBatteryLevel: number = 0;
-    @type("number") rightControllerBatteryLevel: number = 0;
+    @type("number") headsetBatteryLevel: number = -1;
 
     // How well running is going
     @type("number") fps: number = 0;
@@ -73,12 +69,6 @@ export class PlayerSchema extends Schema {
 
         this.headsetBatteryLevel =
             message.headsetBatteryLevel ?? this.headsetBatteryLevel;
-        this.leftControllerBatteryLevel =
-            message.leftControllerBatteryLevel ??
-            this.leftControllerBatteryLevel;
-        this.rightControllerBatteryLevel =
-            message.rightControllerBatteryLevel ??
-            this.rightControllerBatteryLevel;
 
         this.fps = message.fps ?? this.fps;
         this.updateTime = message.updateTime ?? this.updateTime;

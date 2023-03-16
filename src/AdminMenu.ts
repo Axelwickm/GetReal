@@ -672,20 +672,10 @@ export class AdminMenu {
             sid,
             ".headsetBatteryLevel"
         );
-        // TODO
-
-        const leftControllerBatteryLevelElement = this.getPlayerElement(
-            sid,
-            ".leftControllerBatteryLevel"
+        headsetBatteryLevelElement.innerHTML = String(
+            player.headsetBatteryLevel
         );
-        // TODO
 
-        const rightControllerBatteryLevelElement = this.getPlayerElement(
-            sid,
-            ".rightControllerBatteryLevel"
-        );
-        // TODO
-        
         const errorsElement = this.getPlayerElement(sid, ".errors");
         errorsElement.innerHTML = String(player.errors.length);
         if (player.errors.length > 0 && !errorsElement.classList.contains("hasErrors")) {

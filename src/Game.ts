@@ -19,9 +19,14 @@ import {
 } from "@babylonjs/core";
 import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
+declare class BatteryManager {
+    level: number;
+}
+
 export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
+    private battery?: BatteryManager;
     private persitentData: PersistantData = PersistantData.getInstance();
     private peer2peer?: Peer2Peer;
 
@@ -38,6 +43,11 @@ export class Game {
     constructor(scene: Scene, xr: WebXRDefaultExperience) {
         this.scene = scene;
         this.xr = xr;
+
+        //@ts-ignore
+        navigator.getBattery().then((battery: BatteryManager) => {
+            this.battery = battery;
+        });
 
         const _this = this;
         window.addEventListener('error', function(errorEvent) {
@@ -228,6 +238,7 @@ export class Game {
                 fps: fps,
                 updateTime: updateTime,
                 renderTime: renderTime,
+                headsetBatteryLevel: this.battery ? Math.floor(this.battery.level * 100) : undefined,
             });
         }
     }
