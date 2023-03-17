@@ -28,8 +28,12 @@ export class Player {
     avatar: Avatar | undefined;
     debugAvatar: Avatar | undefined;
 
-    panner: PannerNode | undefined;
+    audioStreamSetup: Promise<void> | undefined;
+    audioSource: MediaStreamAudioSourceNode | undefined;
+    gainNode: GainNode | undefined;
+    pannerNode: PannerNode | undefined;
     chromeWorkarondAudio: HTMLAudioElement | undefined;
+    oldSoundMode?: "all" | "none" | "performers" | "audience";
 
     onChangeCallbacks: (() => void)[] = [];
 
@@ -124,12 +128,17 @@ export class Player {
         };
 
         playerState.avatar.listen("avatarType", setAvatar);
+
+        playerState.listen("performerId", () => {
+            if (!this.rig.isMe()) this.setSoundMode();
+        });
     }
 
     destroy() {
         this.avatar?.destroy();
         this.debugAvatar?.destroy();
-        this.panner?.disconnect();
+        this.audioSource?.disconnect();
+        this.pannerNode?.disconnect();
         this.chromeWorkarondAudio?.remove();
     }
 
@@ -164,18 +173,18 @@ export class Player {
                 audioContext.listener.forwardY.value = forward.y;
                 audioContext.listener.forwardZ.value = forward.z;
             });
-        } else if (head && this.panner) {
-            this.panner.positionX.value = head.position.x;
-            this.panner.positionY.value = head.position.y;
-            this.panner.positionZ.value = head.position.z;
+        } else if (head && this.pannerNode) {
+            this.pannerNode.positionX.value = head.position.x;
+            this.pannerNode.positionY.value = head.position.y;
+            this.pannerNode.positionZ.value = head.position.z;
 
             const forward = Vector3.Backward().rotateByQuaternionToRef(
                 head.rotation,
                 new Vector3()
             );
-            this.panner.orientationX.value = forward.x;
-            this.panner.orientationY.value = forward.y;
-            this.panner.orientationZ.value = forward.z;
+            this.pannerNode.orientationX.value = forward.x;
+            this.pannerNode.orientationY.value = forward.y;
+            this.pannerNode.orientationZ.value = forward.z;
         }
     }
 
@@ -235,32 +244,109 @@ export class Player {
     }
 
     setAudioStream(mediaStream: MediaStream) {
-        this.audioContext.then((audioContext) => {
-            console.log("Setting up audio for " + this.id);
-            this.chromeWorkarondAudio = new Audio();
-            this.chromeWorkarondAudio.srcObject = mediaStream;
+        if (this.rig.isMe())
+            throw new Error("Cannot set audio stream for own player");
 
-            const source = audioContext.createMediaStreamSource(mediaStream);
+        this.audioStreamSetup = new Promise((resolve) => {
+            this.audioContext.then((audioContext) => {
+                console.log("Setting up audio for " + this.id);
+                this.chromeWorkarondAudio = new Audio();
+                this.chromeWorkarondAudio.srcObject = mediaStream;
 
-            // Using this gives the same result
-            this.panner = audioContext.createPanner();
-            this.panner.panningModel = "HRTF";
-            this.panner.distanceModel = "exponential";
-            this.panner.refDistance = 1;
-            this.panner.maxDistance = 5;
-            this.panner.rolloffFactor = 1.4;
-            this.panner.coneInnerAngle = 270;
-            this.panner.coneOuterAngle = 300;
-            this.panner.coneOuterGain = 0.8;
-            this.panner.positionX.value = 0;
-            this.panner.positionY.value = 0;
-            this.panner.positionZ.value = 0;
-            this.panner.orientationX.value = 0;
-            this.panner.orientationY.value = 0;
-            this.panner.orientationZ.value = 0;
+                this.audioSource =
+                    audioContext.createMediaStreamSource(mediaStream);
 
-            source.connect(this.panner);
-            this.panner.connect(audioContext.destination);
+                this.gainNode = audioContext.createGain();
+                this.gainNode.gain.value = 1;
+
+                // Using this gives the same result
+                this.pannerNode = audioContext.createPanner();
+                this.pannerNode.panningModel = "HRTF";
+                this.pannerNode.distanceModel = "exponential";
+                this.pannerNode.refDistance = 1;
+                this.pannerNode.maxDistance = 5;
+                this.pannerNode.rolloffFactor = 1.4;
+                this.pannerNode.coneInnerAngle = 270;
+                this.pannerNode.coneOuterAngle = 300;
+                this.pannerNode.coneOuterGain = 0.8;
+                this.pannerNode.positionX.value = 0;
+                this.pannerNode.positionY.value = 0;
+                this.pannerNode.positionZ.value = 0;
+                this.pannerNode.orientationX.value = 0;
+                this.pannerNode.orientationY.value = 0;
+                this.pannerNode.orientationZ.value = 0;
+
+                this.audioSource.connect(this.gainNode);
+                this.gainNode.connect(this.pannerNode);
+                this.pannerNode.connect(audioContext.destination);
+                resolve();
+            });
+        });
+    }
+
+    setSoundMode(mode?: "all" | "none" | "performers" | "audience") {
+        if (mode === undefined) {
+            if (this.oldSoundMode !== undefined) mode = this.oldSoundMode;
+            else return;
+        } else {
+            this.oldSoundMode = mode;
+        }
+
+        if (this.rig.isMe())
+            throw new Error("Cannot set audio mode for own player");
+
+        if (this.audioStreamSetup === undefined)
+            throw new Error(
+                "Cannot set audio mode before audio stream is set up"
+            );
+
+        const isPerformer = this.state.performerId !== -1;
+        this.audioStreamSetup.then(() => {
+            if (mode === "all") {
+                this.audioSource!.connect(this.gainNode!);
+            } else if (mode === "none") {
+                this.audioSource!.disconnect();
+            } else if (mode === "performers") {
+                if (isPerformer) {
+                    this.audioSource!.connect(this.gainNode!);
+                } else {
+                    this.audioSource!.disconnect();
+                }
+            } else if (mode === "audience") {
+                if (isPerformer) {
+                    this.audioSource!.disconnect();
+                } else {
+                    this.audioSource!.connect(this.gainNode!);
+                }
+            }
+        });
+    }
+
+    setSpatialSoundMode(mode: "global" | "spatial") {
+        if (this.rig.isMe())
+            throw new Error("Cannot set audio mode for own player");
+
+        if (this.audioStreamSetup === undefined)
+            throw new Error(
+                "Cannot set audio mode before audio stream is set up"
+            );
+
+        console.log("Setting audio mode for " + this.id + " to " + mode);
+        this.audioStreamSetup.then(() => {
+            this.audioContext.then((audioContext) => {
+                console.log("Performing audio mode change for " + this.id);
+                if (mode === "global") {
+                    this.gainNode!.disconnect();
+                    this.pannerNode!.disconnect();
+
+                    this.gainNode!.connect(audioContext.destination);
+                } else if (mode === "spatial") {
+                    this.gainNode!.disconnect();
+
+                    this.gainNode!.connect(this.pannerNode!);
+                    this.pannerNode!.connect(audioContext.destination);
+                }
+            });
         });
     }
 }

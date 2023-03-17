@@ -212,6 +212,27 @@ export class Game {
                 this.setEnvironment(environmentName);
             }
         );
+
+        this.room.state.room.listen("soundMode", (mode: string) => {
+            if (
+                mode !== "all" &&
+                mode !== "none" &&
+                mode !== "performers" &&
+                mode !== "audience"
+            )
+                throw new Error("Invalid sound mode: " + mode);
+            for (const player of this.players.values()) {
+                if (!player.isMe()) player.setSoundMode(mode);
+            }
+        });
+
+        this.room.state.room.listen("spatialSoundMode", (mode: string) => {
+            if (mode !== "global" && mode !== "spatial")
+                throw new Error("Invalid spatial sound mode: " + mode);
+            for (const player of this.players.values()) {
+                if (!player.isMe()) player.setSpatialSoundMode(mode);
+            }
+        });
     }
 
     getPlayer(sessionId: string): Player | undefined {
