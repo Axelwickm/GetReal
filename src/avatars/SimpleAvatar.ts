@@ -2,8 +2,9 @@ import { Avatar } from "./Avatar";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
 import { AssetManager } from "../AssetManager";
 
-import { Scene, Skeleton, TransformNode } from "@babylonjs/core";
+import { AbstractMesh, Scene, Skeleton, TransformNode } from "@babylonjs/core";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
+import { MeshPrimitiveGenerator } from "../PrimitiveGenerator";
 
 export class SimpleAvatar extends Avatar {
     private skeleton?: Skeleton;
@@ -20,6 +21,7 @@ export class SimpleAvatar extends Avatar {
         id: string
     ) {
         super(scene, rig);
+
         AssetManager.getInstance()
             .getCharacter(characterName)
             .then((character) => {

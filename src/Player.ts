@@ -152,10 +152,12 @@ export class Player {
 
         this.rig.update(this.state, this.room, deltaTime);
 
-        if (this.rig.aTriggered) this.calibrate(true);
+        if (this.rig.isMe()) {
+            if (this.rig.aTriggered) this.calibrate(true);
 
-        if (this.rig.bTriggered)
-            this.game.setDebugMode(!this.game.getDebugMode());
+            if (this.rig.bTriggered)
+                this.game.setDebugMode(!this.game.getDebugMode());
+        }
 
         const head = this.rig.getBone("Head");
         if (head && this.rig.isMe()) {

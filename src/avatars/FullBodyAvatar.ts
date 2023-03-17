@@ -1,8 +1,9 @@
 import { Avatar } from "./Avatar";
 import { AssetManager } from "../AssetManager";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
+import { MeshPrimitiveGenerator } from "../PrimitiveGenerator";
 
-import { Scene, Skeleton, TransformNode } from "@babylonjs/core";
+import { Scene, Skeleton, TransformNode, AbstractMesh } from "@babylonjs/core";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 
 export class FullBodyAvatar extends Avatar {
@@ -10,6 +11,7 @@ export class FullBodyAvatar extends Avatar {
     private armatureBones?: Array<TransformNode>;
     private parent?: TransformNode;
     private armature?: TransformNode;
+    private eyeIndicator?: AbstractMesh;
 
     private modelBones: Map<
         string,
@@ -68,6 +70,15 @@ export class FullBodyAvatar extends Avatar {
                             Quaternion.Identity(),
                         length: 0,
                     });
+
+                    if (bone.name === "Head" && this.rig.isMe()) {
+                        this.eyeIndicator =
+                            MeshPrimitiveGenerator.eyeIndicator(scene);
+                        // Set the eye indicator to the head
+                        this.eyeIndicator.parent = bone;
+                        this.eyeIndicator.position = new Vector3(0, 0.0, 1.0);
+                        this.eyeIndicator.setEnabled(this.enabled);
+                    }
                 }
 
                 for (let i = 0; i < this.skeleton?.bones.length; i++) {
@@ -102,6 +113,7 @@ export class FullBodyAvatar extends Avatar {
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
         this.parent?.setEnabled(enabled);
+        this.eyeIndicator?.setEnabled(enabled);
     }
 
     update() {
