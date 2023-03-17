@@ -35,6 +35,13 @@ export type PlayerCalibrateMessage = {
     sessionId: string;
 };
 
+export const PlayerPeerDataMessageType = "playerPeerData";
+export type PlayerPeerDataMessage = {
+    sourceSessionId: string;
+    targetSessionId: string;
+    signalingData: string;
+};
+
 export class PlayerSchema extends Schema {
     @type("string") sessionId: string = "undefined";
     @type("string") cookieId: string = "undefined";

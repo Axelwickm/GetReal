@@ -8,6 +8,7 @@ import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
 
 import { Room } from "colyseus.js";
 import { Scene, WebXRDefaultExperience } from "@babylonjs/core";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { SimpleAvatar } from "./avatars/SimpleAvatar";
 import { HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
 import { XRRig } from "./hardware_rigs/XRRig";
@@ -21,11 +22,14 @@ export class Player {
     id: string;
 
     state: PlayerSchema;
-
     rig: HardwareRig;
+    audioContext: Promise<AudioContext>;
 
     avatar: Avatar | undefined;
     debugAvatar: Avatar | undefined;
+
+    panner: PannerNode | undefined;
+    chromeWorkarondAudio: HTMLAudioElement | undefined;
 
     onChangeCallbacks: (() => void)[] = [];
 
@@ -35,7 +39,8 @@ export class Player {
         game: Game,
         room: Room,
         isMe: boolean,
-        xr: WebXRDefaultExperience
+        xr: WebXRDefaultExperience,
+        audioContext: Promise<AudioContext>
     ) {
         this.scene = scene;
         this.avatar = undefined;
@@ -44,10 +49,20 @@ export class Player {
         this.id = playerState.sessionId;
         this.state = playerState;
 
+        this.audioContext = audioContext;
+
         if (isMe) {
             this.rig = new XRRig(xr); // default
         } else {
             this.rig = new NetworkRig(xr); // TODO: xr should not have to be passed here
+        }
+
+        if (isMe) {
+            scene.audioListenerPositionProvider = () => {
+                const headPosition =
+                    this.rig.getBone("Head")?.position || Vector3.Zero();
+                return headPosition;
+            };
         }
 
         const debugAvatar = new DebugAvatar(this.scene, this.rig);
@@ -114,6 +129,8 @@ export class Player {
     destroy() {
         this.avatar?.destroy();
         this.debugAvatar?.destroy();
+        this.panner?.disconnect();
+        this.chromeWorkarondAudio?.remove();
     }
 
     addOnChangeCallback(cb: () => void) {
@@ -126,12 +143,40 @@ export class Player {
 
         this.rig.update(this.state, this.room, deltaTime);
 
-        if (this.rig.aTriggered)
-            this.calibrate(true);
+        if (this.rig.aTriggered) this.calibrate(true);
 
         if (this.rig.bTriggered)
             this.game.setDebugMode(!this.game.getDebugMode());
 
+        const head = this.rig.getBone("Head");
+        if (head && this.rig.isMe()) {
+            // check if audio context is ready, else dont wait
+            this.audioContext.then((audioContext) => {
+                audioContext.listener.positionX.value = head.position.x;
+                audioContext.listener.positionY.value = head.position.y;
+                audioContext.listener.positionZ.value = head.position.z;
+
+                const forward = Vector3.Backward().rotateByQuaternionToRef(
+                    head.rotation,
+                    new Vector3()
+                );
+                audioContext.listener.forwardX.value = forward.x;
+                audioContext.listener.forwardY.value = forward.y;
+                audioContext.listener.forwardZ.value = forward.z;
+            });
+        } else if (head && this.panner) {
+            this.panner.positionX.value = head.position.x;
+            this.panner.positionY.value = head.position.y;
+            this.panner.positionZ.value = head.position.z;
+
+            const forward = Vector3.Backward().rotateByQuaternionToRef(
+                head.rotation,
+                new Vector3()
+            );
+            this.panner.orientationX.value = forward.x;
+            this.panner.orientationY.value = forward.y;
+            this.panner.orientationZ.value = forward.z;
+        }
     }
 
     isMe(): boolean {
@@ -187,5 +232,35 @@ export class Player {
             simpleAvatar.setEnabled(true);
             this.avatar = simpleAvatar;
         }
+    }
+
+    setAudioStream(mediaStream: MediaStream) {
+        this.audioContext.then((audioContext) => {
+            console.log("Setting up audio for " + this.id);
+            this.chromeWorkarondAudio = new Audio();
+            this.chromeWorkarondAudio.srcObject = mediaStream;
+
+            const source = audioContext.createMediaStreamSource(mediaStream);
+
+            // Using this gives the same result
+            this.panner = audioContext.createPanner();
+            this.panner.panningModel = "HRTF";
+            this.panner.distanceModel = "exponential";
+            this.panner.refDistance = 1;
+            this.panner.maxDistance = 5;
+            this.panner.rolloffFactor = 1.4;
+            this.panner.coneInnerAngle = 270;
+            this.panner.coneOuterAngle = 300;
+            this.panner.coneOuterGain = 0.8;
+            this.panner.positionX.value = 0;
+            this.panner.positionY.value = 0;
+            this.panner.positionZ.value = 0;
+            this.panner.orientationX.value = 0;
+            this.panner.orientationY.value = 0;
+            this.panner.orientationZ.value = 0;
+
+            source.connect(this.panner);
+            this.panner.connect(audioContext.destination);
+        });
     }
 }

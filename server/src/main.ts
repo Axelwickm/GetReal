@@ -1,31 +1,36 @@
-import { Server } from "colyseus";
+import { Server as ColyseusServer } from "colyseus";
 import { uWebSocketsTransport } from "@colyseus/uwebsockets-transport";
 import { GetRealRoom, setXSensReaderInstance } from "./GetRealRoom";
 import { XSensReader } from "./XSensReader";
-import { PeerServer } from "peer";
 import * as fs from "fs";
+import https from "https";
+import { Server as SocketIOServer } from "socket.io";
 
 // Instantiate XsensReader
 const xsensReader = new XSensReader();
 setXSensReaderInstance(xsensReader);
 xsensReader.start();
 
-// Instantiate PeerServer
-const peerPort = 9000;
-const peerServer = PeerServer({
-    port: peerPort,
-    path: "/peerjs",
-    ssl: {
-        key: fs.readFileSync("certs/ssl.key").toString(),
-        cert: fs.readFileSync("certs/ssl.cert").toString(),
-    },
+// Instantiate Socket io server
+const httpsServer = https.createServer({
+    key: fs.readFileSync("certs/ssl.key"),
+    cert: fs.readFileSync("certs/ssl.cert"),
 });
-console.log(`[PeerServer] PeerServer Listening on port: ${peerPort}`);
-peerServer.listen();
+const io = new SocketIOServer(httpsServer, {});
+io.on("connection", (socket) => {
+    console.log("a user connected");
+    socket.on("disconnect", () => {
+        console.log("user disconnected");
+    });
+});
+
+httpsServer.listen(9000, () => {
+    console.log("[SocketIO] Listening on port: 9000");
+});
 
 // Instantiate Colyseus Server
 const gamePort = parseInt(process.env.PORT, 10) || 2567;
-const gameServer = new Server({
+const gameServer = new ColyseusServer({
     transport: new uWebSocketsTransport(
         {},
         {
@@ -38,4 +43,3 @@ const gameServer = new Server({
 gameServer.define("get_real", GetRealRoom, {});
 console.log(`[GameServer] Colyseus listening on port: ${gamePort}`);
 gameServer.listen(gamePort);
-

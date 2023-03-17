@@ -1,4 +1,4 @@
-import { Schema, type, } from "@colyseus/schema";
+import { Schema, type } from "@colyseus/schema";
 
 export const RoomSettingsUpdateMessageType = "roomSettingsUpdate";
 export type RoomSettingsUpdateMessage = {
@@ -7,10 +7,10 @@ export type RoomSettingsUpdateMessage = {
     audienceTeleportationMode?: AudienceTeleportationMode;
     nonAdminEnterVRImmediatelyMode?: NonAdminEnterVRImmediatelyMode;
     environment?: string;
-}
+};
 
 export enum SoundMode {
-    All= "all",
+    All = "all",
     None = "none",
     Performers = "performers",
     Audience = "audience",
@@ -32,10 +32,14 @@ export enum NonAdminEnterVRImmediatelyMode {
 }
 
 export class RoomSettingsSchema extends Schema {
-    @type("string") soundMode: SoundMode = SoundMode.All;
-    @type("string") spatialSoundMode: SpatialSoundMode = SpatialSoundMode.Spatial;
-    @type("string") audienceTeleportationMode: AudienceTeleportationMode = AudienceTeleportationMode.On;
-    @type("string") nonAdminEnterVRImmediatelyMode: NonAdminEnterVRImmediatelyMode = NonAdminEnterVRImmediatelyMode.Off;
+    @type("string") soundMode: SoundMode = SoundMode.None;
+    @type("string") spatialSoundMode: SpatialSoundMode =
+        SpatialSoundMode.Spatial;
+    @type("string") audienceTeleportationMode: AudienceTeleportationMode =
+        AudienceTeleportationMode.On;
+    @type("string")
+    nonAdminEnterVRImmediatelyMode: NonAdminEnterVRImmediatelyMode =
+        NonAdminEnterVRImmediatelyMode.Off;
     @type("string") environment: string = "Lobbys";
 
     updateFromMessage(message: RoomSettingsUpdateMessage) {
@@ -49,12 +53,11 @@ export class RoomSettingsSchema extends Schema {
             this.audienceTeleportationMode = message.audienceTeleportationMode;
         }
         if (message.nonAdminEnterVRImmediatelyMode !== undefined) {
-            this.nonAdminEnterVRImmediatelyMode = message.nonAdminEnterVRImmediatelyMode;
+            this.nonAdminEnterVRImmediatelyMode =
+                message.nonAdminEnterVRImmediatelyMode;
         }
         if (message.environment !== undefined) {
             this.environment = message.environment;
         }
     }
 }
-
-

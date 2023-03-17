@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const appDirectory = fs.realpathSync(process.cwd());
+const webpack = require("webpack");
 
 module.exports = {
     entry: path.resolve(appDirectory, "src/app.ts"), //path to the main .ts file
@@ -18,10 +19,10 @@ module.exports = {
         static: path.resolve(appDirectory, "public"), //tells webpack to serve from the public folder
         hot: true,
         https: {
-            key: fs.readFileSync('./certs/ssl.key'),
-            cert: fs.readFileSync('./certs/ssl.cert'),
+            key: fs.readFileSync("./certs/ssl.key"),
+            cert: fs.readFileSync("./certs/ssl.cert"),
             //ca: fs.readFileSync('./cert/ssl.ca'),
-        }
+        },
     },
     module: {
         rules: [
@@ -38,10 +39,13 @@ module.exports = {
         ],
     },
     plugins: [
+        new webpack.ProvidePlugin({
+            process: "process/browser",
+        }),
         new HtmlWebpackPlugin({
             inject: true,
             template: path.resolve(appDirectory, "public/index.html"),
-        })
+        }),
     ],
     mode: "development",
-};;
+};

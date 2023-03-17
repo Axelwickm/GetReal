@@ -16,6 +16,8 @@ import {
     PlayerTransformUpdateMessageType,
     PlayerCalibrateMessageType,
     PlayerCalibrateMessage,
+    PlayerPeerDataMessageType,
+    PlayerPeerDataMessage,
 } from "./schema/PlayerSchema";
 import { XSensReader, XSensData, XSENS_BONE_NAME_ARRAY } from "./XSensReader";
 import {
@@ -63,7 +65,9 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 if (message.name) {
                     console.log("Player name is: ", message.name);
                     for (const otherPlayerState of this.state.players.values()) {
-                        if (otherPlayerState?.cookieId && playerState?.cookieId &&
+                        if (
+                            otherPlayerState?.cookieId &&
+                            playerState?.cookieId &&
                             otherPlayerState.cookieId === playerState.cookieId
                         ) {
                             // Same browser, meaning same session storage.
@@ -116,6 +120,23 @@ export class GetRealRoom extends Room<GetRealSchema> {
             (client, message: PlayerCalibrateMessage) => {
                 console.log("Calibrating player", message.sessionId);
                 this.broadcast(PlayerCalibrateMessageType, message);
+            }
+        );
+
+        this.onMessage(
+            PlayerPeerDataMessageType,
+            (client, message: PlayerPeerDataMessage) => {
+                // Pigeon to the target client
+                const targetClient = this.clients.find(
+                    (client) => client.sessionId === message.targetSessionId
+                );
+                if (!targetClient) {
+                    console.warn(
+                        "PlayerPeerDataMessage target client not found"
+                    );
+                } else {
+                    targetClient.send(PlayerPeerDataMessageType, message);
+                }
             }
         );
     }

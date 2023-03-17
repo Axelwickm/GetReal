@@ -7,6 +7,8 @@ import {
     PlayerSettingsUpdateMessageType,
     PlayerCalibrateMessageType,
     PlayerCalibrateMessage,
+    PlayerPeerDataMessageType,
+    PlayerPeerDataMessage,
 } from "./schema/PlayerSchema";
 import { Peer2Peer } from "./Peer2Peer";
 
@@ -27,6 +29,7 @@ export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
     private battery?: BatteryManager;
+    private audioContext: Promise<AudioContext>;
     private persitentData: PersistantData = PersistantData.getInstance();
     private peer2peer?: Peer2Peer;
 
@@ -44,29 +47,34 @@ export class Game {
         this.scene = scene;
         this.xr = xr;
 
+        this.audioContext = this.waitForUserGesture().then(() => {
+            console.log("Resuming audio context");
+            return new AudioContext();
+        });
+
         //@ts-ignore
         navigator.getBattery().then((battery: BatteryManager) => {
             this.battery = battery;
         });
 
         const _this = this;
-        window.addEventListener('error', function(errorEvent) {
+        window.addEventListener("error", function (errorEvent) {
             const errorMessage = `Error: ${errorEvent.message}\nSource: ${errorEvent.filename}\nLine: ${errorEvent.lineno}\nColumn: ${errorEvent.colno}\nStack Trace: ${errorEvent.error.stack}`;
-            if (_this.room){
+            if (_this.room) {
                 _this.room.send(PlayerSettingsUpdateMessageType, {
                     sessionId: _this.room.sessionId,
-                    errors: [errorMessage]
+                    errors: [errorMessage],
                 });
             }
         });
-        window.addEventListener('unhandledrejection', function(event) {
-          const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
-          if (_this.room) {
-            _this.room.send(PlayerSettingsUpdateMessageType, {
-              sessionId: _this.room.sessionId,
-              errors: [errorMessage]
-            });
-          }
+        window.addEventListener("unhandledrejection", function (event) {
+            const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
+            if (_this.room) {
+                _this.room.send(PlayerSettingsUpdateMessageType, {
+                    sessionId: _this.room.sessionId,
+                    errors: [errorMessage],
+                });
+            }
         });
     }
 
@@ -89,11 +97,18 @@ export class Game {
             // add player
             this.players.set(
                 sessionId,
-                new Player(playerState, this.scene, this, room, isMe, this.xr)
+                new Player(
+                    playerState,
+                    this.scene,
+                    this,
+                    room,
+                    isMe,
+                    this.xr,
+                    this.audioContext
+                )
             );
 
             if (isMe) this.me = this.players.get(sessionId);
-            else this.peer2peer!.connectToPeer(sessionId);
 
             if (isMe || playerState.cookieId !== "undefined") {
                 this.adminMenu.registerPlayer(playerState, isMe);
@@ -106,10 +121,11 @@ export class Game {
                 });
             }
 
-
             if (isMe) {
                 if (!this.room)
-                    throw new Error("Room not set when trying to send player introduction message");
+                    throw new Error(
+                        "Room not set when trying to send player introduction message"
+                    );
 
                 this.room.send(PlayerSettingsUpdateMessageType, {
                     sessionId: this.room.sessionId,
@@ -125,9 +141,7 @@ export class Game {
                     };
                 });
 
-                playerState.listen("cookieId", (cookieId: string) => {
-
-                });
+                playerState.listen("cookieId", (cookieId: string) => {});
 
                 playerState.listen("isAdmin", (isAdmin: boolean) => {
                     this.persitentData.data = {
@@ -135,6 +149,22 @@ export class Game {
                         isAdmin: isAdmin,
                     };
                 });
+            } else {
+                this.peer2peer!.connectToPeer(
+                    sessionId,
+                    sessionId < room.sessionId,
+                    (signalData: string) => {
+                        this.room!.send(PlayerPeerDataMessageType, {
+                            sourceSessionId: this.room!.sessionId,
+                            targetSessionId: sessionId,
+                            signalingData: signalData,
+                        });
+                    },
+                    (audioStream: MediaStream) => {
+                        const player = this.players.get(sessionId);
+                        if (player) player.setAudioStream(audioStream);
+                    }
+                );
             }
         };
 
@@ -159,6 +189,20 @@ export class Game {
                 if (player?.isMe()) {
                     player.calibrate(false);
                 }
+            }
+        );
+
+        this.room.onMessage(
+            PlayerPeerDataMessageType,
+            (message: PlayerPeerDataMessage) => {
+                if (message.targetSessionId !== this.room!.sessionId)
+                    throw new Error(
+                        "Received peer data message for a different player"
+                    );
+                this.peer2peer!.signalToPeer(
+                    message.sourceSessionId,
+                    message.signalingData
+                );
             }
         );
 
@@ -238,7 +282,9 @@ export class Game {
                 fps: fps,
                 updateTime: updateTime,
                 renderTime: renderTime,
-                headsetBatteryLevel: this.battery ? Math.floor(this.battery.level * 100) : undefined,
+                headsetBatteryLevel: this.battery
+                    ? Math.floor(this.battery.level * 100)
+                    : undefined,
             });
         }
     }
@@ -272,9 +318,7 @@ export class Game {
                     (ag) => ag.name === "LobbyDisassemble"
                 );
 
-            if (!animationGroup)
-                throw new Error("No animation group found");
-
+            if (!animationGroup) throw new Error("No animation group found");
 
             animationGroup.play(true);
 
@@ -283,7 +327,6 @@ export class Game {
                 animationGroup?.stop();
                 animationGroup?.reset();
                 AssetManager.setEnabled(oldEnvironment!, false);
-
             });
         } else {
             // No animation, since this is the first scene
@@ -296,5 +339,15 @@ export class Game {
 
             AssetManager.setEnabled(this.environment, true);
         }
+    }
+
+    async waitForUserGesture() {
+        return new Promise<void>((resolve) => {
+            const handler = () => {
+                window.removeEventListener("click", handler);
+                resolve();
+            };
+            window.addEventListener("click", handler);
+        });
     }
 }
