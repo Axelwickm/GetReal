@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="UTF-8">
+        <meta charset="UTF-8" />
         <title>Get Real</title>
     </head>
     <body>
-
-        <div id="adminMenu" style="display: none;">
-            <div id="windowControl">
-                -
-            </div>
+        <div id="adminMenu" style="display: none">
+            <div id="windowControl">-</div>
 
             <h3>Room settings</h3>
             <div class="row">
@@ -52,10 +49,20 @@
                 <button id="environmentMountainsDance">Mountains Dance</button>
             </div>
             <div class="row">
+                <span>Current Song: </span><span id="currentSong">None</span>
+                <span id="songStartTime">0</span>
+                <span class="spacing"></span>
+                <button id="songNone">None</button>
+                <button id="songHeavenlySlowDance">Heavenly Slow Dance</button>
+            </div>
+            <div class="row">
                 <span>Total time: </span><span id="totalTime">0</span>
             </div>
             <div class="row">
-                <span>Time in </span><span id="currentScene">---</span>:<span id="environmentTime">0</span>
+                <span>Time in </span><span id="currentScene">---</span>:<span
+                    id="environmentTime"
+                    >0</span
+                >
             </div>
             <br />
             <h3>Player settings</h3>

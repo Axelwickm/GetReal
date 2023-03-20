@@ -9,6 +9,8 @@ import {
 import {
     RoomSettingsUpdateMessage,
     RoomSettingsUpdateMessageType,
+    SongMessageType,
+    SongMessage,
     SoundMode,
     SpatialSoundMode,
     AudienceTeleportationMode,
@@ -45,6 +47,7 @@ export class AdminMenu {
 
     startTime: number = Date.now();
     environmentStartTime: number = Date.now();
+    songStartTime: number = Date.now();
 
     constructor(game: Game) {
         this.game = game;
@@ -88,6 +91,13 @@ export class AdminMenu {
                 e.innerText = toMMSS((now - this.startTime) / 1000);
                 const e2 = this.getElement("#environmentTime");
                 e2.innerText = toMMSS((now - this.environmentStartTime) / 1000);
+                const e3 = this.getElement("#songStartTime");
+                const songDelta = now - this.songStartTime;
+                if (songDelta < 0) {
+                    e3.innerText = Math.floor(songDelta / 1000).toString();
+                } else {
+                    e3.innerText = toMMSS((now - this.songStartTime) / 1000);
+                }
             }
         }, 1000);
 
@@ -158,6 +168,17 @@ export class AdminMenu {
         this.room.state.room.listen("spatialSoundMode", (soundMode: string) => {
             this.setSpatialSoundMode(soundMode);
         });
+
+        this.room.state.room.listen("song", (song: string) => {
+            this.setSong(song, this.room!.state.room.songStartTime);
+        });
+
+        this.room.state.room.listen(
+            "songStartTime",
+            (songStartTime: number) => {
+                this.setSong(this.room!.state.room.song, songStartTime);
+            }
+        );
 
         this.room.state.room.listen(
             "audienceTeleportationMode",
@@ -299,7 +320,7 @@ export class AdminMenu {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
                 avatarType: SimpleAvatar.getAvatarType(),
-                character: "Nao"
+                character: "Nao",
             });
         });
 
@@ -307,7 +328,7 @@ export class AdminMenu {
             this.msgAvatar({
                 sessionId: playerState.sessionId,
                 avatarType: FullBodyAvatar.getAvatarType(),
-                character: "BlueMonsterGirl"
+                character: "BlueMonsterGirl",
             });
         });
 
@@ -420,6 +441,10 @@ export class AdminMenu {
 
     msgRoomSettings(msg: RoomSettingsUpdateMessage) {
         this.room?.send(RoomSettingsUpdateMessageType, msg);
+    }
+
+    msgSong(msg: SongMessage) {
+        this.room?.send(SongMessageType, msg);
     }
 
     msgAvatar(msg: AvatarUpdateMessage) {
@@ -655,6 +680,43 @@ export class AdminMenu {
         currentScene.innerHTML = environment;
     }
 
+    setSong(song: string, songStartTime: number) {
+        this.songStartTime = songStartTime;
+
+        const songElement = this.getElement("#currentSong");
+        songElement.innerHTML = song;
+
+        const songNone = this.getElement("#songNone");
+        const songHeavenlySlowDance = this.getElement("#songHeavenlySlowDance");
+
+        if (song === "undefined") {
+            this.activateElement(songNone);
+        } else if (song === "HeavenlySlowDance") {
+            this.activateElement(songHeavenlySlowDance);
+        } else {
+            throw new Error("Unhandled song: " + song);
+        }
+
+        if (!songNone.onclick) {
+            // TODO: if song is already playing, double check
+            songNone.onclick = () => {
+                this.msgSong({
+                    song: "undefined",
+                    songStartTime: new Date().getTime(),
+                });
+            };
+        }
+
+        if (!songHeavenlySlowDance.onclick) {
+            songHeavenlySlowDance.onclick = () => {
+                this.msgSong({
+                    song: "HeavenlySlowDance",
+                    songStartTime: new Date().getTime() + 3000,
+                });
+            };
+        }
+    }
+
     updatePlayerElement(player: PlayerSchema) {
         const sid = player.sessionId;
         const sessionIdElement = this.getPlayerElement(sid, ".sessionId");
@@ -685,9 +747,15 @@ export class AdminMenu {
 
         const errorsElement = this.getPlayerElement(sid, ".errors");
         errorsElement.innerHTML = String(player.errors.length);
-        if (player.errors.length > 0 && !errorsElement.classList.contains("hasErrors")) {
+        if (
+            player.errors.length > 0 &&
+            !errorsElement.classList.contains("hasErrors")
+        ) {
             errorsElement.classList.add("hasErrors");
-        } else if (player.errors.length === 0 && errorsElement.classList.contains("hasErrors")) {
+        } else if (
+            player.errors.length === 0 &&
+            errorsElement.classList.contains("hasErrors")
+        ) {
             errorsElement.classList.remove("hasErrors");
         }
 

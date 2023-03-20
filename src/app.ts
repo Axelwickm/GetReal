@@ -19,7 +19,7 @@ import * as Colyseus from "colyseus.js";
 
 class App {
     constructor() {
-        this.init()
+        this.init();
     }
 
     async init() {
@@ -74,7 +74,6 @@ class App {
         const xr = await scene.createDefaultXRExperienceAsync({
             floorMeshes: [ground],
         });
-
 
         // Create core Game object
         const game = new Game(scene, xr);

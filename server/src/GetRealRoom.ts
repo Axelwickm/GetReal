@@ -6,6 +6,8 @@ import {
     RoomSettingsSchema,
     RoomSettingsUpdateMessage,
     RoomSettingsUpdateMessageType,
+    SongMessageType,
+    SongMessage,
 } from "./schema/RoomSettingsSchema";
 import { QuaternionSchema, Vector3Schema } from "./schema/MathSchemas";
 import {
@@ -56,6 +58,10 @@ export class GetRealRoom extends Room<GetRealSchema> {
                 this.state.room.updateFromMessage(message);
             }
         );
+
+        this.onMessage(SongMessageType, (client, message: SongMessage) => {
+            this.state.room.updateSongFromMessage(message);
+        });
 
         this.onMessage(
             PlayerSettingsUpdateMessageType,

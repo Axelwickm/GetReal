@@ -9,6 +9,12 @@ export type RoomSettingsUpdateMessage = {
     environment?: string;
 };
 
+export const SongMessageType = "song";
+export type SongMessage = {
+    song: string;
+    songStartTime: number;
+};
+
 export enum SoundMode {
     All = "all",
     None = "none",
@@ -42,6 +48,9 @@ export class RoomSettingsSchema extends Schema {
         NonAdminEnterVRImmediatelyMode.Off;
     @type("string") environment: string = "Lobbys";
 
+    @type("string") song: string = "undefined";
+    @type("number") songStartTime: number = 0;
+
     updateFromMessage(message: RoomSettingsUpdateMessage) {
         if (message.soundMode !== undefined) {
             this.soundMode = message.soundMode;
@@ -59,5 +68,10 @@ export class RoomSettingsSchema extends Schema {
         if (message.environment !== undefined) {
             this.environment = message.environment;
         }
+    }
+
+    updateSongFromMessage(message: SongMessage) {
+        this.song = message.song;
+        this.songStartTime = message.songStartTime;
     }
 }

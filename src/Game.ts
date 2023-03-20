@@ -18,6 +18,7 @@ import {
     WebXRDefaultExperience,
     Engine,
     AnimationGroup,
+    Sound,
 } from "@babylonjs/core";
 import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
@@ -40,6 +41,8 @@ export class Game {
 
     private environmentName?: string = undefined;
     private environment?: EnvironmentAsset;
+
+    private song?: Sound;
 
     private debugMode: boolean = false;
 
@@ -250,6 +253,10 @@ export class Game {
                 if (!player.isMe()) player.setSpatialSoundMode(mode);
             }
         });
+
+        this.room.state.room.listen("songStartTime", () => {
+            this.setSong();
+        });
     }
 
     getPlayer(sessionId: string): Player | undefined {
@@ -377,6 +384,35 @@ export class Game {
 
             AssetManager.setEnabled(this.environment, true);
         }
+    }
+
+    async setSong() {
+        if (this.song) {
+            this.song.stop();
+            this.song.dispose();
+        }
+
+        if (this.room!.state.room.song === "undefined") return;
+
+        const songAsset = await AssetManager.getInstance().getSound(
+            this.room!.state.room.song
+        );
+
+        this.song = new Sound(
+            "song",
+            songAsset.buffer,
+            this.scene,
+            async () => {
+                const songStartTime = this.room!.state.room.songStartTime;
+                const delay = songStartTime - Date.now();
+                // Wait delay
+                await new Promise((resolve) => {
+                    setTimeout(resolve, delay);
+                });
+                this.song!.play();
+            },
+            {}
+        );
     }
 
     async waitForUserGesture() {
