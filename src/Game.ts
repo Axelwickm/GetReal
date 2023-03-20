@@ -257,6 +257,8 @@ export class Game {
         this.room.state.room.listen("songStartTime", () => {
             this.setSong();
         });
+
+        this.setSong();
     }
 
     getPlayer(sessionId: string): Player | undefined {
@@ -392,7 +394,11 @@ export class Game {
             this.song.dispose();
         }
 
-        if (this.room!.state.room.song === "undefined") return;
+        if (
+            !this.room!.state.room.song ||
+            this.room!.state.room.song === "undefined"
+        )
+            return;
 
         const songAsset = await AssetManager.getInstance().getSound(
             this.room!.state.room.song
@@ -405,11 +411,12 @@ export class Game {
             async () => {
                 const songStartTime = this.room!.state.room.songStartTime;
                 const delay = songStartTime - Date.now();
-                // Wait delay
+
                 await new Promise((resolve) => {
                     setTimeout(resolve, delay);
                 });
-                this.song!.play();
+
+                this.song!.play(0, delay < 0 ? -delay / 1000 : 0);
             },
             {}
         );
