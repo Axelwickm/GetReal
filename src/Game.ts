@@ -428,6 +428,7 @@ export class Game {
                 songAsset.buffer,
                 audioContext
             );
+            this.soundTrack.gain.gain.value = 0.5;
             const songStartTime = this.room!.state.room.songStartTime;
             const delay = songStartTime - Date.now();
             console.log("Playing song with delay", delay);
