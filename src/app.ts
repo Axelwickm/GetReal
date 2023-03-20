@@ -94,9 +94,6 @@ class App {
                 throw e;
             });
 
-        // Load assets asynchronously
-        AssetManager.getInstance().loadAssets(scene)
-
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {
             // Ctrl+I = Inspector
@@ -108,7 +105,7 @@ class App {
                 }
                 ev.preventDefault();
             }
-            // Debug mode 
+            // Debug mode
             if (ev.ctrlKey && ev.key === "d") {
                 game.setDebugMode(!game.getDebugMode());
                 ev.preventDefault();
@@ -116,7 +113,6 @@ class App {
         });
 
         game.run(engine);
-       
     }
 }
 

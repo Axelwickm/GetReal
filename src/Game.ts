@@ -76,6 +76,18 @@ export class Game {
                 });
             }
         });
+
+        AssetManager.getInstance()
+            .loadAssets(this.scene)
+            .then(() => {
+                for (const player of this.players.values()) {
+                    if (player.rig.isMe() && _this.room)
+                        _this.room.send(PlayerSettingsUpdateMessageType, {
+                            sessionId: _this.room.sessionId,
+                            loaded: true,
+                        });
+                }
+            });
     }
 
     setRoom(room: Room<GetRealSchema>) {

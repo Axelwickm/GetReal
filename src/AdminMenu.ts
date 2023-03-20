@@ -263,12 +263,19 @@ export class AdminMenu {
         ) as HTMLInputElement;
         errorsElement.addEventListener("click", () => {
             // Log to console
-            console.error("Errors for player " + playerState.name + " " + playerState.sessionId + " ("+playerState.errors.length+")");
+            console.error(
+                "Errors for player " +
+                    playerState.name +
+                    " " +
+                    playerState.sessionId +
+                    " (" +
+                    playerState.errors.length +
+                    ")"
+            );
             for (const error of playerState.errors) {
                 console.error(error);
             }
         });
-
 
         // Avatar changes
         const noAvatar = playerElement.querySelector(
@@ -695,6 +702,10 @@ export class AdminMenu {
 
         const renderTimeElement = this.getPlayerElement(sid, ".renderTime");
         renderTimeElement.innerHTML = String(player.renderTime);
+
+        const loadedElement = this.getPlayerElement(sid, ".loaded");
+        loadedElement.innerHTML = player.loaded ? "Y" : "N";
+        if (player.loaded) loadedElement.classList.remove("notLoaded");
     }
 
     updateAvatarElement(sessionId: string, avatar: AvatarSchema) {

@@ -20,6 +20,7 @@ export type PlayerSettingsUpdateMessage = {
     updateTime?: number; // ms
     renderTime?: number; // ms
     errors?: string[];
+    loaded?: boolean;
 };
 
 export const PlayerTransformUpdateMessageType = "playerTransformUpdate";
@@ -60,6 +61,7 @@ export class PlayerSchema extends Schema {
     @type("number") updateTime: number = 0; // ms
     @type("number") renderTime: number = 0; // ms
     @type(["string"]) errors = new ArraySchema<string>();
+    @type("boolean") loaded: boolean = false;
 
     // Bone names to vector, quaternion
     @type({ map: Vector3Schema }) bonePositions =
@@ -86,6 +88,8 @@ export class PlayerSchema extends Schema {
                 this.errors.push(error);
             }
         }
+
+        this.loaded = message.loaded ?? this.loaded;
     }
 
     updateFromTransformMessage(message: PlayerTransformUpdateMessage) {
