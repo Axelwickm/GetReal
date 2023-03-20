@@ -1,7 +1,8 @@
 import { Game } from "./Game";
-import { AssetManager } from "./AssetManager";
 import { GetRealSchema } from "./schema/GetRealSchema";
 import { MaterialsGenerator } from "./MaterialsCreator";
+import { GetRealAssets } from "./GetRealAssets";
+import { AssetManager } from "./AssetManager";
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -52,6 +53,9 @@ class App {
             new Vector3(0, -9.81, 0),
             new OimoJSPlugin(undefined, undefined, OIMO)
         );
+
+        // Set asset refs
+        AssetManager.setAssetRefs(GetRealAssets);
 
         // Add materials to scene
         MaterialsGenerator.addMaterialsToScene(scene);

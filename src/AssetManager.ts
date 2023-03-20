@@ -13,7 +13,7 @@ import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
  * for other classes to use.
  */
 
-type AssetRef = {
+export type AssetRef = {
     name: string;
     path: string;
     type: "character" | "environment" | "sound";
@@ -28,55 +28,6 @@ type AssetRef = {
 };
 
 const CONCURRENT_LOADS = 3;
-const ASSETS: Array<AssetRef> = [
-    {
-        type: "character",
-        name: "Nao",
-        path: "Avatars/Nao.glb",
-        meMask: ["Body"],
-        rhs: false,
-    },
-    {
-        type: "environment",
-        name: "Lobbys",
-        path: "Environments/Lobbys.glb",
-        rhs: true,
-    },
-    {
-        type: "environment",
-        name: "Warehouse",
-        path: "Environments/Warehouse.glb",
-        parentOffset: new Vector3(16, 0, 0),
-        rhs: true,
-    },
-    {
-        type: "environment",
-        name: "MountainsDance",
-        path: "Environments/MountainsDance.glb",
-        parentOffset: new Vector3(-85, 7.5, 97),
-        rhs: true,
-    },
-    {
-        type: "character",
-        name: "BlueMonsterGirl",
-        path: "Avatars/BlueMonsterGirl.glb",
-        meMask: [
-            "EyeLeft",
-            "EyeRight",
-            "Wolf3D_Teeth",
-            "Wolf3D_Head",
-            "Wolf3D_Hair",
-            "Wolf3D_Outfit_Top",
-        ],
-        rhs: false, // Actually, this currenly is, but this messes with the rigging. TODO: convert to LHS properly
-    },
-    {
-        type: "sound",
-        name: "HeavenlySlowDance",
-        path: "Sound/HeavenlySlowDance.mp3",
-    },
-];
-
 export type EnvironmentAsset = {
     type: "environment";
     name: string;
@@ -117,8 +68,8 @@ export class AssetManager {
     private constructor() {
         // Create a promise for each character asset
         // Users will have to wait for these to resolve before they can use the assets
-        for (let i = 0; i < ASSETS.length; i++) {
-            const assetRef = ASSETS[i];
+        for (let i = 0; i < AssetManager.assetsRefs.length; i++) {
+            const assetRef = AssetManager.assetsRefs[i];
             if (assetRef.type === "environment") {
                 this.environments.set(
                     assetRef.name,
@@ -151,8 +102,17 @@ export class AssetManager {
     }
 
     static instance: AssetManager;
+    // Not a great pattern to be honest
+    static assetsRefs: Array<AssetRef> = [];
+
+    static setAssetRefs(assetsRefs: Array<AssetRef>) {
+        AssetManager.assetsRefs = assetsRefs;
+    }
 
     static getInstance(): AssetManager {
+        if (!AssetManager.assetsRefs)
+            throw new Error("Must set assetsRefs before calling getInstance");
+
         if (!AssetManager.instance) {
             AssetManager.instance = new AssetManager();
         }
@@ -202,12 +162,12 @@ export class AssetManager {
         const promises: Promise<boolean>[] = [];
         const unfinishedPromiseCount = () => promises.filter((p) => !p).length;
 
-        for (let i = 0; i < ASSETS.length; i++) {
+        for (let i = 0; i < AssetManager.assetsRefs.length; i++) {
             while (unfinishedPromiseCount() >= CONCURRENT_LOADS) {
                 await new Promise((resolve) => setTimeout(resolve, 100));
             }
 
-            const assetRef = ASSETS[i];
+            const assetRef = AssetManager.assetsRefs[i];
 
             if (
                 assetRef.type === "environment" ||
