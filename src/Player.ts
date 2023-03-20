@@ -28,7 +28,8 @@ export class Player {
     avatar: Avatar | undefined;
     debugAvatar: Avatar | undefined;
 
-    audioStreamSetup: Promise<void> | undefined;
+    audioStreamSetup: Promise<void>;
+    audioStreamSetupResolve?: () => void;
     audioSource: MediaStreamAudioSourceNode | undefined;
     gainNode: GainNode | undefined;
     pannerNode: PannerNode | undefined;
@@ -131,6 +132,10 @@ export class Player {
 
         playerState.listen("performerId", () => {
             if (!this.rig.isMe()) this.setSoundMode();
+        });
+
+        this.audioStreamSetup = new Promise((resolve) => {
+            this.audioStreamSetupResolve = resolve;
         });
     }
 
@@ -249,40 +254,41 @@ export class Player {
         if (this.rig.isMe())
             throw new Error("Cannot set audio stream for own player");
 
-        this.audioStreamSetup = new Promise((resolve) => {
-            this.audioContext.then((audioContext) => {
-                console.log("Setting up audio for " + this.id);
-                this.chromeWorkarondAudio = new Audio();
-                this.chromeWorkarondAudio.srcObject = mediaStream;
+        this.audioContext.then((audioContext) => {
+            console.log("Setting up audio for " + this.id);
+            this.chromeWorkarondAudio = new Audio();
+            this.chromeWorkarondAudio.srcObject = mediaStream;
 
-                this.audioSource =
-                    audioContext.createMediaStreamSource(mediaStream);
+            this.audioSource =
+                audioContext.createMediaStreamSource(mediaStream);
 
-                this.gainNode = audioContext.createGain();
-                this.gainNode.gain.value = 1;
+            this.gainNode = audioContext.createGain();
+            this.gainNode.gain.value = 1;
 
-                // Using this gives the same result
-                this.pannerNode = audioContext.createPanner();
-                this.pannerNode.panningModel = "HRTF";
-                this.pannerNode.distanceModel = "exponential";
-                this.pannerNode.refDistance = 1;
-                this.pannerNode.maxDistance = 5;
-                this.pannerNode.rolloffFactor = 1.4;
-                this.pannerNode.coneInnerAngle = 270;
-                this.pannerNode.coneOuterAngle = 300;
-                this.pannerNode.coneOuterGain = 0.8;
-                this.pannerNode.positionX.value = 0;
-                this.pannerNode.positionY.value = 0;
-                this.pannerNode.positionZ.value = 0;
-                this.pannerNode.orientationX.value = 0;
-                this.pannerNode.orientationY.value = 0;
-                this.pannerNode.orientationZ.value = 0;
+            // Using this gives the same result
+            this.pannerNode = audioContext.createPanner();
+            this.pannerNode.panningModel = "HRTF";
+            this.pannerNode.distanceModel = "exponential";
+            this.pannerNode.refDistance = 1;
+            this.pannerNode.maxDistance = 5;
+            this.pannerNode.rolloffFactor = 1.4;
+            this.pannerNode.coneInnerAngle = 270;
+            this.pannerNode.coneOuterAngle = 300;
+            this.pannerNode.coneOuterGain = 0.8;
+            this.pannerNode.positionX.value = 0;
+            this.pannerNode.positionY.value = 0;
+            this.pannerNode.positionZ.value = 0;
+            this.pannerNode.orientationX.value = 0;
+            this.pannerNode.orientationY.value = 0;
+            this.pannerNode.orientationZ.value = 0;
 
-                this.audioSource.connect(this.gainNode);
-                this.gainNode.connect(this.pannerNode);
-                this.pannerNode.connect(audioContext.destination);
-                resolve();
-            });
+            this.audioSource.connect(this.gainNode);
+            this.gainNode.connect(this.pannerNode);
+            this.pannerNode.connect(audioContext.destination);
+
+            if (!this.audioStreamSetupResolve)
+                throw new Error("Audio stream setup promise not set");
+            this.audioStreamSetupResolve();
         });
     }
 
@@ -297,13 +303,10 @@ export class Player {
         if (this.rig.isMe())
             throw new Error("Cannot set audio mode for own player");
 
-        if (this.audioStreamSetup === undefined)
-            throw new Error(
-                "Cannot set audio mode before audio stream is set up"
-            );
-
+        console.log("Setting sound mode to " + mode + " for " + this.id);
         const isPerformer = this.state.performerId !== -1;
         this.audioStreamSetup.then(() => {
+            console.log("Performing sound mode change for " + this.id);
             if (mode === "all") {
                 this.audioSource!.connect(this.gainNode!);
             } else if (mode === "none") {
@@ -327,11 +330,6 @@ export class Player {
     setSpatialSoundMode(mode: "global" | "spatial") {
         if (this.rig.isMe())
             throw new Error("Cannot set audio mode for own player");
-
-        if (this.audioStreamSetup === undefined)
-            throw new Error(
-                "Cannot set audio mode before audio stream is set up"
-            );
 
         console.log("Setting audio mode for " + this.id + " to " + mode);
         this.audioStreamSetup.then(() => {

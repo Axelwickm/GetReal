@@ -108,7 +108,9 @@ export class Game {
                 )
             );
 
-            if (isMe) this.me = this.players.get(sessionId);
+            const player = this.players.get(sessionId)!;
+
+            if (isMe) this.me = player;
 
             if (isMe || playerState.cookieId !== "undefined") {
                 this.adminMenu.registerPlayer(playerState, isMe);
@@ -165,6 +167,9 @@ export class Game {
                         if (player) player.setAudioStream(audioStream);
                     }
                 );
+
+                player.setSoundMode(room.state.room.soundMode);
+                player.setSpatialSoundMode(room.state.room.spatialSoundMode);
             }
         };
 
