@@ -168,6 +168,17 @@ export class Game {
                         isAdmin: isAdmin,
                     };
                 });
+
+                if (
+                    this.room.state.room.nonAdminEnterVRImmediatelyMode &&
+                    !playerState.isAdmin
+                ) {
+                    // TODO: doesn't work, gives me security errors
+                    this.xr.baseExperience.enterXRAsync(
+                        "immersive-vr",
+                        "local-floor"
+                    );
+                }
             } else {
                 this.peer2peer!.connectToPeer(
                     sessionId,
