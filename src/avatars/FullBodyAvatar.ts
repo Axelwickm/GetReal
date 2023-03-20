@@ -118,6 +118,7 @@ export class FullBodyAvatar extends Avatar {
 
     update() {
         if (this.armatureBones) {
+            let origin: Vector3 | undefined = undefined;
             // For each tranform node child of this.armature
             for (let i = 0; i < this.armatureBones.length; i++) {
                 const bone = this.armatureBones[i];
@@ -167,7 +168,17 @@ export class FullBodyAvatar extends Avatar {
                     } else {
                         bone.position = hwRigBone.position;
                         bone.rotationQuaternion = hwRigBone.rotation;
+                        origin = hwRigBone.position;
                     }
+                }
+            }
+
+            const meshes = this.parent?.getChildMeshes();
+            if (meshes && origin) {
+                for (let i = 0; i < meshes.length; i++) {
+                    const boundingInfo = meshes[i].getBoundingInfo();
+                    // TODO: scale this based on the size of the avatar
+                    boundingInfo.centerOn(origin, new Vector3(0.6, 2.0, 0.6));
                 }
             }
         }

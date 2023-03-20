@@ -2,9 +2,8 @@ import { Avatar } from "./Avatar";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
 import { AssetManager } from "../AssetManager";
 
-import { AbstractMesh, Scene, Skeleton, TransformNode } from "@babylonjs/core";
-import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
-import { MeshPrimitiveGenerator } from "../PrimitiveGenerator";
+import { Scene, Skeleton, TransformNode, BoundingInfo } from "@babylonjs/core";
+import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 export class SimpleAvatar extends Avatar {
     private skeleton?: Skeleton;
@@ -78,7 +77,8 @@ export class SimpleAvatar extends Avatar {
     }
 
     update() {
-        if (this.armatureBones) {
+        if (this.armatureBones && this.armature) {
+            let origin: Vector3 | undefined = undefined;
             for (let i = 0; i < this.armatureBones.length; i++) {
                 const bone = this.armatureBones[i];
                 const hwRigBone = this.rig.getBone(bone.name);
@@ -87,10 +87,18 @@ export class SimpleAvatar extends Avatar {
                     const naturalRotation = this.modelBoneAngles.get(
                         bone.name
                     )!;
+                    console.log(
+                        "Set bone position: " +
+                            bone.name +
+                            " " +
+                            hwRigBone.position
+                    );
                     bone.position = hwRigBone.position;
                     bone.rotationQuaternion =
                         hwRigBone.rotation.multiply(naturalRotation);
                     bone.computeWorldMatrix(true);
+
+                    if (!origin) origin = bone.getAbsolutePosition();
                 } else if (bone.name === "Torso") {
                     /*const globalTorso = Quaternion.Slerp(
                         bone.absoluteRotationQuaternion,
@@ -109,6 +117,14 @@ export class SimpleAvatar extends Avatar {
                         bone.rotationQuaternion =
                             globalTorso.multiply(parentRotation);
                     }*/
+                }
+            }
+            // For child meshes update bounding box
+            const meshes = this.parent?.getChildMeshes();
+            if (meshes && origin) {
+                for (let i = 0; i < meshes.length; i++) {
+                    const boundingInfo = meshes[i].getBoundingInfo();
+                    boundingInfo.centerOn(origin, new Vector3(0.5, 0.5, 0.5));
                 }
             }
         }

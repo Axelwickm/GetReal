@@ -31,9 +31,7 @@ const ASSETS: Array<AssetRef> = [
         name: "Nao",
         path: "Avatars/Nao.glb",
         type: "character",
-        meMask: [
-            "Body",
-        ],
+        meMask: ["Body"],
         rhs: false,
     },
     {
@@ -264,6 +262,8 @@ export class AssetManager {
                         result.meshes.forEach((mesh) => {
                             //mesh.occlusionQueryAlgorithmType = 0;
                             //mesh.alwaysSelectAsActiveMesh = true;
+                            //mesh.showBoundingBox = true;
+                            //mesh.showSubMeshesBoundingBox = true;
                         });
 
                         const characterAsset: CharacterAsset = {
