@@ -13,7 +13,11 @@ import {
     Vector3,
     HemisphericLight,
     MeshBuilder,
+    OimoJSPlugin,
+    Color4,
 } from "@babylonjs/core";
+// @ts-ignore
+import * as OIMO from "oimo";
 
 import * as Colyseus from "colyseus.js";
 
@@ -40,6 +44,14 @@ class App {
         // initialize babylon scene and engine
         var engine = new Engine(canvas, true);
         var scene = new Scene(engine);
+
+        scene.clearColor = new Color4(0.05, 0.05, 0.05, 1);
+
+        // Enable physics
+        scene.enablePhysics(
+            new Vector3(0, -9.81, 0),
+            new OimoJSPlugin(undefined, undefined, OIMO)
+        );
 
         // Add materials to scene
         MaterialsGenerator.addMaterialsToScene(scene);
