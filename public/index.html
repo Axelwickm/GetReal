@@ -56,6 +56,12 @@
                 <button id="songHeavenlySlowDance">Heavenly Slow Dance</button>
             </div>
             <div class="row">
+                <span>Attach song to performers:</span>
+                <span class="spacing"></span>
+                <button id="attachSongToPerformerOn">On</button>
+                <button id="attachSongToPerformerOff">Off</button>
+            </div>
+            <div class="row">
                 <span>Total time: </span><span id="totalTime">0</span>
             </div>
             <div class="row">
@@ -68,6 +74,7 @@
             <h3>Player settings</h3>
             <table id="players">
                 <tr>
+                    <th>Name</th>
                     <th>Session id</th>
                     <th>Cookie id</th>
                     <th>Performer id</th>
@@ -78,6 +85,7 @@
                     <th>Loaded</th>
                 </tr>
                 <tr class="mainPlayer">
+                    <th><input class="name" type="text" /></th>
                     <th class="sessionId">xxx-xx</th>
                     <th class="cookieId">xxx-xx</th>
                     <th class="performerId">?</th>
@@ -118,7 +126,6 @@
                     </th>
 
                     <th><button class="calibrate">Calibrate</button></th>
-                    <th><input class="name" type="text" /></th>
                     <th><button class="delete" disabled>Delete</button></th>
                 </tr>
             </table>

@@ -7,7 +7,7 @@ import { DebugAvatar } from "./avatars/DebugAvatar";
 import { FullBodyAvatar } from "./avatars/FullBodyAvatar";
 
 import { Room } from "colyseus.js";
-import { Scene, WebXRDefaultExperience } from "@babylonjs/core";
+import { Scene, WebXRDefaultExperience, TransformNode } from "@babylonjs/core";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { SimpleAvatar } from "./avatars/SimpleAvatar";
 import { HardwareRigUpdateMessageType } from "./schema/HardwareRigSchema";
@@ -24,12 +24,14 @@ export class Player {
     state: PlayerSchema;
     rig: HardwareRig;
     audioContext: Promise<AudioContext>;
+    origin: TransformNode;
 
     avatar: Avatar | undefined;
     debugAvatar: Avatar | undefined;
 
     audioStreamSetup: Promise<void>;
     audioStreamSetupResolve?: () => void;
+    // TODO: use SoundContainer.ts for this instead
     audioSource: MediaStreamAudioSourceNode | undefined;
     gainNode: GainNode | undefined;
     pannerNode: PannerNode | undefined;
@@ -55,6 +57,8 @@ export class Player {
         this.state = playerState;
 
         this.audioContext = audioContext;
+
+        this.origin = new TransformNode("player_origin_" + this.id, scene);
 
         if (isMe) {
             this.rig = new XRRig(xr); // default
@@ -132,6 +136,7 @@ export class Player {
 
         playerState.listen("performerId", () => {
             if (!this.rig.isMe()) this.setSoundMode();
+            this.game.attachSongToPerformer();
         });
 
         this.audioStreamSetup = new Promise((resolve) => {
@@ -193,10 +198,19 @@ export class Player {
             this.pannerNode.orientationY.value = forward.y;
             this.pannerNode.orientationZ.value = forward.z;
         }
+
+        if (head) {
+            this.origin.position = head.position;
+            this.origin.rotationQuaternion = head.rotation;
+        }
     }
 
     isMe(): boolean {
         return this.rig.isMe();
+    }
+
+    getOrigin(): TransformNode {
+        return this.origin;
     }
 
     async calibrate(immediate: boolean) {

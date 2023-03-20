@@ -2,6 +2,8 @@ import { Player } from "./Player";
 import { PersistantData } from "./PersistantData";
 import { AdminMenu } from "./AdminMenu";
 import { GetRealSchema } from "./schema/GetRealSchema";
+import { SoundContainer } from "./SoundContainer";
+
 import {
     PlayerSchema,
     PlayerSettingsUpdateMessageType,
@@ -18,7 +20,6 @@ import {
     WebXRDefaultExperience,
     Engine,
     AnimationGroup,
-    Sound,
 } from "@babylonjs/core";
 import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
@@ -42,7 +43,7 @@ export class Game {
     private environmentName?: string = undefined;
     private environment?: EnvironmentAsset;
 
-    private song?: Sound;
+    private soundTrack: SoundContainer | undefined;
 
     private debugMode: boolean = false;
 
@@ -80,6 +81,7 @@ export class Game {
             }
         });
 
+        // Load all the assets
         AssetManager.getInstance()
             .loadAssets(this.scene)
             .then(() => {
@@ -258,6 +260,10 @@ export class Game {
             this.setSong();
         });
 
+        this.room.state.room.listen("attachSongToPerformer", () => {
+            this.attachSongToPerformer();
+        });
+
         this.setSong();
     }
 
@@ -275,6 +281,8 @@ export class Game {
         this.players.forEach((player) => {
             player.update(deltaTime);
         });
+
+        this.soundTrack?.update();
     }
 
     getDebugMode(): boolean {
@@ -389,9 +397,8 @@ export class Game {
     }
 
     async setSong() {
-        if (this.song) {
-            this.song.stop();
-            this.song.dispose();
+        if (this.soundTrack) {
+            this.soundTrack.destroy();
         }
 
         if (
@@ -404,22 +411,48 @@ export class Game {
             this.room!.state.room.song
         );
 
-        this.song = new Sound(
-            "song",
-            songAsset.buffer,
-            this.scene,
-            async () => {
-                const songStartTime = this.room!.state.room.songStartTime;
-                const delay = songStartTime - Date.now();
+        // Use web api instead
+        this.audioContext.then((audioContext) => {
+            this.soundTrack = new SoundContainer(
+                songAsset.buffer,
+                audioContext
+            );
+            const songStartTime = this.room!.state.room.songStartTime;
+            const delay = songStartTime - Date.now();
+            console.log("Playing song with delay", delay);
+            this.soundTrack.play(
+                audioContext.currentTime + delay / 1000,
+                delay < 0 ? -delay / 1000 : 0
+            );
+            this.attachSongToPerformer();
+        });
+    }
 
-                await new Promise((resolve) => {
-                    setTimeout(resolve, delay);
-                });
+    attachSongToPerformer() {
+        if (!this.room || !this.soundTrack) return;
 
-                this.song!.play(0, delay < 0 ? -delay / 1000 : 0);
-            },
-            {}
-        );
+        // Loop through all players and find first where performer !== -1
+        let player: Player | undefined;
+        for (const p of this.players.values()) {
+            if (p.state.performerId !== -1) {
+                player = p;
+                break;
+            }
+        }
+
+        const wasSpatial = this.soundTrack.getSpatial();
+        this.soundTrack.setSpatial(false);
+
+        if (!this.room.state.room.attachSongToPerformer) {
+            if (wasSpatial) console.log("Detaching song from performer");
+        } else if (!player) {
+            console.log("No performer found to attach song to. Detaching.");
+        } else {
+            console.log("Attaching song to performer: ", player.state.name);
+            this.soundTrack.setSpatial(true, player.getOrigin());
+            this.soundTrack.panner!.distanceModel = "linear";
+            this.soundTrack.panner!.rolloffFactor = 0.35;
+        }
     }
 
     async waitForUserGesture() {

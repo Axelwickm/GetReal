@@ -7,6 +7,7 @@ export type RoomSettingsUpdateMessage = {
     audienceTeleportationMode?: AudienceTeleportationMode;
     nonAdminEnterVRImmediatelyMode?: NonAdminEnterVRImmediatelyMode;
     environment?: string;
+    attachSongToPerformer?: boolean;
 };
 
 export const SongMessageType = "song";
@@ -50,6 +51,7 @@ export class RoomSettingsSchema extends Schema {
 
     @type("string") song: string = "undefined";
     @type("number") songStartTime: number = 0;
+    @type("boolean") attachSongToPerformer: boolean = false;
 
     updateFromMessage(message: RoomSettingsUpdateMessage) {
         if (message.soundMode !== undefined) {
@@ -67,6 +69,10 @@ export class RoomSettingsSchema extends Schema {
         }
         if (message.environment !== undefined) {
             this.environment = message.environment;
+        }
+
+        if (message.attachSongToPerformer !== undefined) {
+            this.attachSongToPerformer = message.attachSongToPerformer;
         }
     }
 

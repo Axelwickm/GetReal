@@ -87,12 +87,12 @@ export class SimpleAvatar extends Avatar {
                     const naturalRotation = this.modelBoneAngles.get(
                         bone.name
                     )!;
-                    console.log(
+                    /*console.log(
                         "Set bone position: " +
                             bone.name +
                             " " +
                             hwRigBone.position
-                    );
+                    );*/
                     bone.position = hwRigBone.position;
                     bone.rotationQuaternion =
                         hwRigBone.rotation.multiply(naturalRotation);

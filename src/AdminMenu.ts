@@ -181,6 +181,13 @@ export class AdminMenu {
         );
 
         this.room.state.room.listen(
+            "attachSongToPerformer",
+            (mode: boolean) => {
+                this.setAttachSongToPerformer(mode);
+            }
+        );
+
+        this.room.state.room.listen(
             "audienceTeleportationMode",
             (mode: string) => {
                 this.setAudienceTeleportationMode(mode);
@@ -717,6 +724,37 @@ export class AdminMenu {
         }
     }
 
+    setAttachSongToPerformer(attachSongToPerformer: boolean) {
+        const attachSongToPerformerOnElement = this.getElement(
+            "#attachSongToPerformerOn"
+        );
+        const attachSongToPerformerOffElement = this.getElement(
+            "#attachSongToPerformerOff"
+        );
+
+        if (attachSongToPerformer) {
+            this.activateElement(attachSongToPerformerOnElement);
+        } else {
+            this.activateElement(attachSongToPerformerOffElement);
+        }
+
+        if (!attachSongToPerformerOnElement.onclick) {
+            attachSongToPerformerOnElement.onclick = () => {
+                this.msgRoomSettings({
+                    attachSongToPerformer: true,
+                });
+            };
+        }
+
+        if (!attachSongToPerformerOffElement.onclick) {
+            attachSongToPerformerOffElement.onclick = () => {
+                this.msgRoomSettings({
+                    attachSongToPerformer: false,
+                });
+            };
+        }
+    }
+
     updatePlayerElement(player: PlayerSchema) {
         const sid = player.sessionId;
         const sessionIdElement = this.getPlayerElement(sid, ".sessionId");
@@ -774,6 +812,7 @@ export class AdminMenu {
         const loadedElement = this.getPlayerElement(sid, ".loaded");
         loadedElement.innerHTML = player.loaded ? "Y" : "N";
         if (player.loaded) loadedElement.classList.remove("notLoaded");
+        else loadedElement.classList.add("notLoaded");
     }
 
     updateAvatarElement(sessionId: string, avatar: AvatarSchema) {
