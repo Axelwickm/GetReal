@@ -4,6 +4,7 @@ import {
     AssetContainer,
     AbstractMesh,
     InstantiatedEntries,
+    PhysicsImpostor,
 } from "@babylonjs/core";
 
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
@@ -20,6 +21,11 @@ export type AssetRef = {
     parentOffset?: Vector3;
     parentRotation?: Quaternion;
     rhs?: boolean;
+    physicsImpostorsCb?: (
+        scene: Scene,
+        parent: AbstractMesh,
+        container: AssetContainer
+    ) => Array<PhysicsImpostor>;
     meMask?: Array<string>; // Names of meshes if associated with specific client (ex. to hide inside of head)
     defferedResolve?: (
         value: CharacterAsset | EnvironmentAsset | SoundAsset
@@ -215,6 +221,10 @@ export class AssetManager {
                                 parent.rotationQuaternion =
                                     assetRef.parentRotation;
                             }
+                        }
+
+                        if (assetRef.physicsImpostorsCb) {
+                            assetRef.physicsImpostorsCb(scene, parent, result);
                         }
 
                         if (assetRef.type === "environment") {
