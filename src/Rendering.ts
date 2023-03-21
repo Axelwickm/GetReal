@@ -38,8 +38,8 @@ export class Rendering {
             () => [blackScreen],
             false
         );
-        this.pipeline.addEffect(this.blackScreen);
-        this.setScreenBlackout(false);
+        //this.pipeline.addEffect(this.blackScreen);
+        this.setScreenBlackout(false); // TODO: Sometimes broken
 
         this.scene.postProcessRenderPipelineManager.addPipeline(this.pipeline);
     }
@@ -58,13 +58,14 @@ export class Rendering {
                 camera
             );
         }
+        this.setScreenBlackout(false);
     }
 
     update() {}
 
     setScreenBlackout(value: boolean) {
         if (value === this.blackScreenActive) return;
-        if (value) {
+        /*if (value) {
             console.log("Blackout");
             this.blackScreenActive = true;
             this.scene.postProcessRenderPipelineManager.enableEffectInPipeline(
@@ -80,6 +81,6 @@ export class Rendering {
                 "blackScreen",
                 null
             );
-        }
+        }*/
     }
 }

@@ -168,9 +168,13 @@ export class Player {
             if (this.rig.bTriggered)
                 this.game.setDebugMode(!this.game.getDebugMode());
 
-            if (this.rig.shouldBlackout && !this.game.getDebugMode())
-                this.game.rendering.setScreenBlackout(true);
-            else this.game.rendering.setScreenBlackout(false);
+            if (!this.game.getDebugMode())
+                this.rig.setControllerVisibility(false);
+
+            if (this.rig.shouldBlackout) {
+                if (!this.game.getDebugMode())
+                    this.game.rendering.setScreenBlackout(true);
+            } else this.game.rendering.setScreenBlackout(false);
         }
 
         const head = this.rig.getBone("Head");

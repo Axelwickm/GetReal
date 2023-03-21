@@ -316,8 +316,6 @@ export class Game {
         this.debugMode = debugMode;
         this.players.forEach((player) => {
             player.debugAvatar?.setEnabled(debugMode);
-            if (player.rig.isMe())
-                player.rig.setControllerVisibility(debugMode);
         });
         this.adminMenu.setDebugMode(debugMode);
         this.rendering.setScreenBlackout(false);
