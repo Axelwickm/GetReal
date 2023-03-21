@@ -93,12 +93,12 @@ export const GetRealAssets: Array<AssetRef> = [
         name: "BlueMonsterGirl",
         path: "Avatars/BlueMonsterGirl.glb",
         meMask: [
-            "EyeLeft",
-            "EyeRight",
-            "Wolf3D_Teeth",
-            "Wolf3D_Head",
-            "Wolf3D_Hair",
-            "Wolf3D_Outfit_Top",
+            "EyeLeft_LOD0",
+            "EyeRight_LOD0",
+            "Wolf3D_Teeth_LOD0",
+            "Wolf3D_Head_LOD0",
+            "Wolf3D_Hair_LOD0",
+            "Wolf3D_Outfit_Top_LOD0",
         ],
         rhs: false, // Actually, this currenly is, but this messes with the rigging. TODO: convert to LHS properly
     },

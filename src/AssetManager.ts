@@ -318,6 +318,10 @@ export class AssetManager {
 
                             // Disable occlusion culling for all meshes
                             result.meshes.forEach((mesh) => {
+                                // If meshname ends in meMask, diable t
+                                if (mesh.name.endsWith("_meMask")) {
+                                    mesh.setEnabled(false);
+                                }
                                 //mesh.occlusionQueryAlgorithmType = 0;
                                 //mesh.alwaysSelectAsActiveMesh = true;
                                 //mesh.showBoundingBox = true;
@@ -431,6 +435,11 @@ export class AssetManager {
             .forEach((node) => {
                 // Invert, since we're applying the mask
                 node.setEnabled(!value);
+            });
+        parent
+            .getChildren((node) => node.name.endsWith("_meMask"), false)
+            .forEach((node) => {
+                node.setEnabled(value);
             });
     }
 }
