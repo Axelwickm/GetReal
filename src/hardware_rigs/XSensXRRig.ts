@@ -13,6 +13,7 @@ import { Room } from "colyseus.js";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 import { WebXRDefaultExperience, WebXRState } from "@babylonjs/core";
 import { Conversion } from "../Conversion";
+import { Interpolator } from "../Interpolator";
 
 export class XSensXRRig extends HardwareRig {
     boneTransformsRaw: Map<string, [Vector3, Quaternion]> = new Map();
@@ -21,6 +22,12 @@ export class XSensXRRig extends HardwareRig {
     headToXRRotation: Quaternion = new Quaternion();
     headToXROffset: Vector3 = new Vector3();
     origoToXRPosition: Vector3 = new Vector3();
+
+    bonePositionInterpolator: Interpolator = new Interpolator("Vector3");
+    bonePositionsInterpolated: Map<string, Vector3> = new Map();
+
+    boneRotationInterpolator: Interpolator = new Interpolator("Quaternion");
+    boneRotationsInterpolated: Map<string, Quaternion> = new Map();
 
     constructor(
         xr: WebXRDefaultExperience,
@@ -49,10 +56,21 @@ export class XSensXRRig extends HardwareRig {
 
     getBone(name: string): { position: Vector3; rotation: Quaternion } | null {
         const bone = this.boneTransformsTransformed.get(name);
+        const bonePositionInterpolated =
+            this.bonePositionsInterpolated.get(name);
+        const boneRotationInterpolated =
+            this.boneRotationsInterpolated.get(name);
         if (bone) {
             return {
                 position: bone[0],
                 rotation: bone[1],
+                /*position: bonePositionInterpolated
+                    ? bonePositionInterpolated
+                    : bone[0],
+                rotation: bone[1],*/
+                /*rotation: boneRotationInterpolated
+                    ? boneRotationInterpolated
+                    : bone[1],*/
             };
         }
         return null;
@@ -185,6 +203,8 @@ export class XSensXRRig extends HardwareRig {
             [Vector3, Quaternion]
         >();
 
+        const bonePositions = new Map<string, Vector3>();
+        const boneRotations = new Map<string, Quaternion>();
         for (const [key, value] of this.boneTransformsRaw) {
             let [position, rotation] = value;
             position = position.clone();
@@ -196,12 +216,28 @@ export class XSensXRRig extends HardwareRig {
                 position
             );
 
-            this.boneTransformsTransformed.set(key, [
-                position,
-                this.headToXRRotation.multiply(rotation),
-            ]);
+            rotation = rotation.multiply(this.headToXRRotation);
+
+            this.boneTransformsTransformed.set(key, [position, rotation]);
+
+            bonePositions.set(key, position);
+            boneRotations.set(key, rotation);
         }
+
+        // Update interpolators
+        this.bonePositionInterpolator.updateVector3(deltaTime, bonePositions);
+        this.boneRotationInterpolator.updateQuaternion(
+            deltaTime,
+            boneRotations
+        );
     }
 
-    update(state: PlayerSchema, room: Room, deltaTime: number) {}
+    update(state: PlayerSchema, room: Room, deltaTime: number) {
+        this.bonePositionsInterpolated = this.bonePositionInterpolator.predict(
+            deltaTime
+        ) as Map<string, Vector3>;
+        this.boneRotationsInterpolated = this.boneRotationInterpolator.predict(
+            deltaTime
+        ) as Map<string, Quaternion>;
+    }
 }
