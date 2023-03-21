@@ -3,6 +3,7 @@ import { PersistantData } from "./PersistantData";
 import { AdminMenu } from "./AdminMenu";
 import { GetRealSchema } from "./schema/GetRealSchema";
 import { SoundContainer } from "./SoundContainer";
+import { Rendering } from "./Rendering";
 
 import {
     PlayerSchema,
@@ -18,6 +19,7 @@ import { Room } from "colyseus.js";
 import {
     Scene,
     WebXRDefaultExperience,
+    WebXRState,
     Engine,
     AnimationGroup,
 } from "@babylonjs/core";
@@ -30,6 +32,7 @@ declare class BatteryManager {
 export class Game {
     private scene: Scene;
     private xr: WebXRDefaultExperience;
+    public rendering: Rendering;
     private battery?: BatteryManager;
     private audioContext: Promise<AudioContext>;
     private persitentData: PersistantData = PersistantData.getInstance();
@@ -50,6 +53,7 @@ export class Game {
     constructor(scene: Scene, xr: WebXRDefaultExperience) {
         this.scene = scene;
         this.xr = xr;
+        this.rendering = new Rendering(scene, xr);
 
         this.audioContext = this.waitForUserGesture().then(() => {
             console.log("Resuming audio context");
@@ -78,6 +82,13 @@ export class Game {
                     sessionId: _this.room.sessionId,
                     errors: [errorMessage],
                 });
+            }
+        });
+
+        // When jumping into XR This causes error in babylonjs, so will use polling approach
+        xr.baseExperience.onStateChangedObservable.add((state) => {
+            if (state === WebXRState.IN_XR) {
+                this.rendering.attachCameras();
             }
         });
 
@@ -169,7 +180,7 @@ export class Game {
                     };
                 });
 
-                if (
+                /*if (
                     this.room.state.room.nonAdminEnterVRImmediatelyMode &&
                     !playerState.isAdmin
                 ) {
@@ -178,7 +189,7 @@ export class Game {
                         "immersive-vr",
                         "local-floor"
                     );
-                }
+                }*/
             } else {
                 this.peer2peer!.connectToPeer(
                     sessionId,
@@ -309,6 +320,7 @@ export class Game {
                 player.rig.setControllerVisibility(debugMode);
         });
         this.adminMenu.setDebugMode(debugMode);
+        this.rendering.setScreenBlackout(false);
     }
 
     run(engine: Engine) {
@@ -324,6 +336,7 @@ export class Game {
             lastStartTime = startTime;
             const updateFinishTime = Date.now();
             this.scene.render();
+            this.rendering.update();
             const renderFinishTime = Date.now();
 
             const gameUpdateTime = updateFinishTime - startTime;

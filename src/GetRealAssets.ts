@@ -13,27 +13,6 @@ export const GetRealAssets: Array<AssetRef> = [
         path: "Avatars/Nao.glb",
         meMask: ["Body"],
         rhs: false,
-        physicsImpostorsCb: (
-            scene: Scene,
-            parent: AbstractMesh,
-            container: AssetContainer
-        ) => {
-            const box = MeshBuilder.CreateBox(
-                "collider",
-                { width: 0.5, height: 0.5, depth: 0.4 },
-                scene
-            );
-            box.parent = parent;
-            box.isVisible = false;
-            return [
-                new PhysicsImpostor(
-                    box,
-                    PhysicsImpostor.BoxImpostor,
-                    { mass: 1, restitution: 0.9, ignoreParent: true },
-                    scene
-                ),
-            ];
-        },
     },
     {
         type: "environment",
@@ -46,7 +25,7 @@ export const GetRealAssets: Array<AssetRef> = [
             parent: AbstractMesh,
             container: AssetContainer
         ) => {
-            const box = MeshBuilder.CreateBox(
+            /*const box = MeshBuilder.CreateBox(
                 "collider",
                 { width: 3.71, height: 3.14, depth: 4.39 },
                 scene
@@ -62,7 +41,37 @@ export const GetRealAssets: Array<AssetRef> = [
                     { mass: 0, restitution: 0.9, ignoreParent: true },
                     scene
                 ),
+            ];*/
+
+            const planes = [
+                MeshBuilder.CreatePlane(
+                    "ground",
+                    { width: 3.71, height: 4.39 },
+                    scene
+                ),
+                MeshBuilder.CreatePlane(
+                    "wall1",
+                    { width: 3.71, height: 4.39 },
+                    scene
+                ),
             ];
+            planes[0].rotation = new Vector3(Math.PI / 2, 0, 0);
+            planes[0].position = new Vector3(0, 0, 0);
+            planes[1].rotation = new Vector3(0, Math.PI / 2, Math.PI / 2);
+            planes[1].position = new Vector3(3.71 / 2, 3.14 / 2, 0);
+
+            //ground.position = new Vector3(0, 0, 0);
+            //ground.isVisible = false;
+
+            return planes.map((plane) => {
+                plane.parent = parent;
+                return new PhysicsImpostor(
+                    plane,
+                    PhysicsImpostor.PlaneImpostor,
+                    { mass: 0, restitution: 0.9, ignoreParent: true },
+                    scene
+                );
+            });
         },
     },
     {

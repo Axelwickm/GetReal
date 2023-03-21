@@ -14,11 +14,12 @@ import {
     Vector3,
     HemisphericLight,
     MeshBuilder,
-    OimoJSPlugin,
+    AmmoJSPlugin,
     Color4,
+    WebXRDefaultExperience,
 } from "@babylonjs/core";
-// @ts-ignore
-import * as OIMO from "oimo";
+
+import Ammo from "ammojs-typed";
 
 import * as Colyseus from "colyseus.js";
 
@@ -46,12 +47,13 @@ class App {
         var engine = new Engine(canvas, true);
         var scene = new Scene(engine);
 
-        scene.clearColor = new Color4(0.05, 0.05, 0.05, 1);
+        scene.clearColor = new Color4(0.1, 0.1, 0.1, 1);
 
         // Enable physics
+        const ammo = await Ammo();
         scene.enablePhysics(
             new Vector3(0, -9.81, 0),
-            new OimoJSPlugin(undefined, undefined, OIMO)
+            new AmmoJSPlugin(undefined, ammo)
         );
 
         // Set asset refs
@@ -80,6 +82,7 @@ class App {
             scene
         );
 
+        // TODO: this should maybe be handled by the asset manager
         var ground = MeshBuilder.CreateGround(
             "ground",
             { width: 100, height: 100 },
@@ -87,9 +90,15 @@ class App {
         );
         ground.visibility = 0;
 
-        const xr = await scene.createDefaultXRExperienceAsync({
-            floorMeshes: [ground],
-        });
+        let xr: WebXRDefaultExperience;
+        try {
+            xr = await scene.createDefaultXRExperienceAsync({
+                floorMeshes: [ground],
+            });
+        } catch (e: any) {
+            setErrorMessage("Could not create XR experience: " + e.message);
+            throw e;
+        }
 
         // Create core Game object
         const game = new Game(scene, xr);

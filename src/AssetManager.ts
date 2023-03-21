@@ -223,11 +223,52 @@ export class AssetManager {
                             }
                         }
 
-                        if (assetRef.physicsImpostorsCb) {
+                        /*if (assetRef.physicsImpostorsCb) {
                             assetRef.physicsImpostorsCb(scene, parent, result);
-                        }
+                        }*/
 
                         if (assetRef.type === "environment") {
+                            // Find "colliders" TransformNode, make invisible and author physics impostors
+                            const colliders = result.transformNodes.find(
+                                (transformNode) => {
+                                    return transformNode.name === "colliders";
+                                }
+                            );
+                            if (!colliders) {
+                                console.warn(
+                                    "No colliders found for " + assetRef.name
+                                );
+                            } else {
+                                colliders.getChildMeshes().forEach((mesh) => {
+                                    mesh.isVisible = false;
+                                    if (mesh.name === "collider_ground") {
+                                        mesh.physicsImpostor =
+                                            new PhysicsImpostor(
+                                                mesh,
+                                                PhysicsImpostor.BoxImpostor,
+                                                {
+                                                    mass: 0,
+                                                    restitution: 0.9,
+                                                },
+                                                scene
+                                            );
+                                    } else {
+                                        console.log("Collider: " + mesh.name);
+                                        mesh.physicsImpostor =
+                                            new PhysicsImpostor(
+                                                mesh,
+                                                PhysicsImpostor.BoxImpostor,
+                                                {
+                                                    mass: 0,
+                                                    restitution: 0.9,
+                                                    ignoreParent: true,
+                                                },
+                                                scene
+                                            );
+                                    }
+                                });
+                            }
+
                             result.animationGroups.forEach((ag) => {
                                 console.log("Stop animation group " + ag.name);
                                 ag.stop();

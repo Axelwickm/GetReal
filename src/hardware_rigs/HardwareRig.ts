@@ -23,6 +23,8 @@ export abstract class HardwareRig {
     public bPressed: boolean = false;
     public bTriggered: boolean = false;
 
+    public shouldBlackout: boolean = false;
+
     public xr: WebXRDefaultExperience;
 
     constructor(xr: WebXRDefaultExperience) {

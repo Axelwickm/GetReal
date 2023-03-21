@@ -61,7 +61,7 @@ export class Player {
         this.origin = new TransformNode("player_origin_" + this.id, scene);
 
         if (isMe) {
-            this.rig = new XRRig(xr); // default
+            this.rig = new XRRig(xr, scene); // default
         } else {
             this.rig = new NetworkRig(xr); // TODO: xr should not have to be passed here
         }
@@ -105,13 +105,13 @@ export class Player {
                     playerState.hardwareRig.rigType === XRRig.getRigType() &&
                     this.rig.getRigType() !== XRRig.getRigType()
                 ) {
-                    this.rig = new XRRig(xr);
+                    this.rig = new XRRig(xr, scene);
                 } else if (
                     playerState.hardwareRig.rigType ===
                         XSensXRRig.getRigType() &&
                     this.rig.getRigType() !== XSensXRRig.getRigType()
                 ) {
-                    this.rig = new XSensXRRig(playerState.hardwareRig, xr);
+                    this.rig = new XSensXRRig(xr, playerState.hardwareRig);
                 }
 
                 this.avatar?.setRig(this.rig);
@@ -167,6 +167,10 @@ export class Player {
 
             if (this.rig.bTriggered)
                 this.game.setDebugMode(!this.game.getDebugMode());
+
+            if (this.rig.shouldBlackout && !this.game.getDebugMode())
+                this.game.rendering.setScreenBlackout(true);
+            else this.game.rendering.setScreenBlackout(false);
         }
 
         const head = this.rig.getBone("Head");

@@ -23,8 +23,8 @@ export class XSensXRRig extends HardwareRig {
     origoToXRPosition: Vector3 = new Vector3();
 
     constructor(
-        hardwareRigState: HardwareRigSchema,
-        xr: WebXRDefaultExperience
+        xr: WebXRDefaultExperience,
+        hardwareRigState: HardwareRigSchema
     ) {
         console.log("Create XSens + XR Rig");
         super(xr);

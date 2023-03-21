@@ -6,7 +6,13 @@ import {
 import { HardwareRig } from "./HardwareRig";
 
 import { Room } from "colyseus.js";
-import { WebXRDefaultExperience } from "@babylonjs/core";
+import {
+    WebXRDefaultExperience,
+    Mesh,
+    PhysicsImpostor,
+    MeshBuilder,
+    Scene,
+} from "@babylonjs/core";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
 import { Conversion } from "../Conversion";
 
@@ -17,9 +23,12 @@ export class XRRig extends HardwareRig {
         new Map();
     timeSinceLastUpdate: number = Infinity;
 
-    constructor(xr: WebXRDefaultExperience) {
-        console.log("Create XRRig");
+    collisionMesh: Mesh;
+    collisionImpostor: PhysicsImpostor;
+
+    constructor(xr: WebXRDefaultExperience, scene: Scene) {
         super(xr);
+        console.log("Create XRRig");
         this.boneTransforms.set("Head", {
             position: new Vector3(),
             rotation: new Quaternion(),
@@ -34,6 +43,40 @@ export class XRRig extends HardwareRig {
             position: new Vector3(),
             rotation: new Quaternion(),
         });
+
+        this.collisionMesh = MeshBuilder.CreateSphere(
+            "meCollisionMesh",
+            { diameter: 0.2 },
+            scene
+        );
+        this.collisionMesh.isVisible = false;
+        this.collisionMesh.isPickable = false;
+
+        this.collisionImpostor = new PhysicsImpostor(
+            this.collisionMesh,
+            PhysicsImpostor.SphereImpostor,
+            {
+                mass: 1,
+                restitution: 0.9,
+            },
+            scene
+        );
+
+        this.collisionImpostor.registerBeforePhysicsStep(() => {
+            this.shouldBlackout = false;
+        });
+
+        this.collisionImpostor.registerOnPhysicsCollide(
+            this.collisionImpostor,
+            (collider, collidedWith) => {
+                this.resolveCollision();
+            }
+        );
+    }
+
+    destroy() {
+        this.collisionMesh.dispose();
+        this.collisionImpostor.dispose();
     }
 
     static getRigType(): string {
@@ -70,6 +113,19 @@ export class XRRig extends HardwareRig {
 
     async calibrate(room: Room) {}
 
+    resolveCollision() {
+        // Reset position if we collide with something
+        const camera = this.xr.baseExperience.camera;
+        camera.position = new Vector3(
+            this.collisionMesh.position.x,
+            camera.position.y,
+            this.collisionMesh.position.z
+        );
+
+        // Black out screen
+        this.shouldBlackout = true;
+    }
+
     networkUpdate(playerState: PlayerSchema, room: Room, deltaTime: number) {}
 
     update(playerState: PlayerSchema, room: Room, deltaTime: number) {
@@ -94,6 +150,10 @@ export class XRRig extends HardwareRig {
                 rotation: this.rightControllerRotation,
             });
         }
+
+        //this.collisionMesh.setAbsolutePosition(this.testObject.position);
+        this.collisionMesh.position = camera.position;
+        this.collisionImpostor.setLinearVelocity(Vector3.Zero());
 
         this.timeSinceLastUpdate += deltaTime;
         if (UPDATE_RATE < this.timeSinceLastUpdate) {
