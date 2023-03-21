@@ -85,7 +85,7 @@ export const GetRealAssets: Array<AssetRef> = [
         type: "environment",
         name: "MountainsDance",
         path: "Environments/MountainsDance.glb",
-        parentOffset: new Vector3(-85, 7.5, 97),
+        parentOffset: new Vector3(-85.44, 7.3, 97.44),
         rhs: true,
     },
     {
