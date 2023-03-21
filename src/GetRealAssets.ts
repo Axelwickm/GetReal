@@ -1,17 +1,94 @@
 import { Scene } from "@babylonjs/core/scene";
 import { AssetContainer } from "@babylonjs/core/assetContainer";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
-import { AssetRef } from "./AssetManager";
+import {
+    AssetRef,
+    CustomAsset,
+    CharacterAsset,
+    EnvironmentAsset,
+    SoundAsset,
+} from "./AssetManager";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { MirrorTexture } from "@babylonjs/core/Materials/Textures/mirrorTexture";
+import { Plane } from "@babylonjs/core/Maths/math.plane";
+
+class Lobbys extends CustomAsset {
+    instantiate(
+        assetRef: AssetRef,
+        scene: Scene,
+        container: AssetContainer,
+        finalAsset: CharacterAsset | EnvironmentAsset | SoundAsset
+    ): void {
+        console.log('Custom Asset "Lobbys" instantiate');
+
+        //Creation of a mirror planes
+        const mirror = MeshBuilder.CreatePlane(
+            "mirror",
+            { width: 2.26, height: 2.24 },
+            scene
+        );
+
+        mirror.rotation = new Vector3(0, (3 * Math.PI) / 2, 0);
+        mirror.position = new Vector3(-1.72847, 1.78803, -0.392012);
+
+        //Ensure working with new values for mirror by computing and obtaining its worldMatrix
+        mirror.computeWorldMatrix(true);
+        var glass_worldMatrix = mirror.getWorldMatrix();
+
+        //Obtain normals for plane and assign one of them as the normal
+        var glass_vertexData = mirror.getVerticesData("normal")!;
+        var glassNormal = new Vector3(
+            glass_vertexData[0],
+            glass_vertexData[1],
+            glass_vertexData[2]
+        );
+        //Use worldMatrix to transform normal into its current value
+        glassNormal = Vector3.TransformNormal(glassNormal, glass_worldMatrix);
+
+        //Create reflecting surface for mirror surface
+        var reflector = Plane.FromPositionAndNormal(
+            mirror.position,
+            glassNormal.scale(-1)
+        );
+
+        //Create the mirror material
+        var mirrorMaterial = new StandardMaterial("mirror_custom_asset", scene);
+        const mirrorTexture = new MirrorTexture(
+            "mirror_texture_custom_asset",
+            1024,
+            scene,
+            true,
+            11
+        );
+        mirrorMaterial.reflectionTexture = mirrorTexture;
+        mirrorTexture.mirrorPlane = reflector;
+        mirrorTexture.renderList = container.meshes.filter(
+            (m) => m.name !== "colliders"
+        );
+        mirrorMaterial.reflectionTexture.level = 1;
+
+        mirrorMaterial.disableLighting = true;
+
+        mirror.material = mirrorMaterial;
+
+        const mirrorTransformNode = container.transformNodes.find(
+            (t) => t.name === "Mirror"
+        );
+        if (mirrorTransformNode) {
+            console.log("Found mirror transform node. Setting mirror parent");
+            mirror.parent = mirrorTransformNode;
+        }
+        mirror.setAbsolutePosition(new Vector3(-1.72847, 1.78803, -0.392012));
+    }
+}
 
 export const GetRealAssets: Array<AssetRef> = [
     {
         type: "character",
         name: "Nao",
         path: "Avatars/Nao.glb",
-        meMask: ["Body"],
+        // meMask: ["Body"], TODO: Make this work with mirrors and add back in
         rhs: false,
     },
     {
@@ -20,59 +97,7 @@ export const GetRealAssets: Array<AssetRef> = [
         path: "Environments/Lobbys.glb",
         rhs: true,
         parentOffset: new Vector3(0, 0, 0),
-        physicsImpostorsCb: (
-            scene: Scene,
-            parent: AbstractMesh,
-            container: AssetContainer
-        ) => {
-            /*const box = MeshBuilder.CreateBox(
-                "collider",
-                { width: 3.71, height: 3.14, depth: 4.39 },
-                scene
-            );
-            box.position = new Vector3(0, 3.14 / 2, 0);
-            box.isVisible = false;
-            box.parent = parent;
-
-            return [
-                new PhysicsImpostor(
-                    box,
-                    PhysicsImpostor.BoxImpostor,
-                    { mass: 0, restitution: 0.9, ignoreParent: true },
-                    scene
-                ),
-            ];*/
-
-            const planes = [
-                MeshBuilder.CreatePlane(
-                    "ground",
-                    { width: 3.71, height: 4.39 },
-                    scene
-                ),
-                MeshBuilder.CreatePlane(
-                    "wall1",
-                    { width: 3.71, height: 4.39 },
-                    scene
-                ),
-            ];
-            planes[0].rotation = new Vector3(Math.PI / 2, 0, 0);
-            planes[0].position = new Vector3(0, 0, 0);
-            planes[1].rotation = new Vector3(0, Math.PI / 2, Math.PI / 2);
-            planes[1].position = new Vector3(3.71 / 2, 3.14 / 2, 0);
-
-            //ground.position = new Vector3(0, 0, 0);
-            //ground.isVisible = false;
-
-            return planes.map((plane) => {
-                plane.parent = parent;
-                return new PhysicsImpostor(
-                    plane,
-                    PhysicsImpostor.PlaneImpostor,
-                    { mass: 0, restitution: 0.9, ignoreParent: true },
-                    scene
-                );
-            });
-        },
+        customAsset: new Lobbys(),
     },
     {
         type: "environment",

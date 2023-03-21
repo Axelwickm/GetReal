@@ -2,7 +2,7 @@ import { Avatar } from "./Avatar";
 import { HardwareRig } from "../hardware_rigs/HardwareRig";
 import { AssetManager } from "../AssetManager";
 
-import { Scene, Skeleton, TransformNode, BoundingInfo } from "@babylonjs/core";
+import { Scene, Skeleton, TransformNode, MirrorTexture } from "@babylonjs/core";
 import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 export class SimpleAvatar extends Avatar {
@@ -27,6 +27,19 @@ export class SimpleAvatar extends Avatar {
                 console.log("Creating simple avatar: " + characterName);
                 const instances = AssetManager.addAssetToScene(character, id);
                 if (!instances) throw new Error("No instances found");
+
+                // Get mirror_texture_custom_asset and add to render_list
+                const mirrorTexture = scene
+                    .getMaterialByName("mirror_custom_asset")
+                    ?.getActiveTextures()[0] as MirrorTexture | undefined;
+                if (mirrorTexture) {
+                    for (let i = 0; i < instances.rootNodes.length; i++) {
+                        const node = instances.rootNodes[i];
+                        node.getChildMeshes().forEach((mesh) => {
+                            mirrorTexture.renderList?.push(mesh);
+                        });
+                    }
+                }
 
                 if (rig.isMe())
                     AssetManager.applyMeMask(character, instances, true);
@@ -93,9 +106,19 @@ export class SimpleAvatar extends Avatar {
                             " " +
                             hwRigBone.position
                     );*/
-                    bone.position = hwRigBone.position;
                     bone.rotationQuaternion =
                         hwRigBone.rotation.multiply(naturalRotation);
+                    if (bone.name === "Head") {
+                        const offset = new Vector3(0, -0.13, -0.1);
+                        bone.position = hwRigBone.position.add(
+                            offset.rotateByQuaternionToRef(
+                                hwRigBone.rotation,
+                                new Vector3()
+                            )
+                        );
+                    } else {
+                        bone.position = hwRigBone.position;
+                    }
                     bone.computeWorldMatrix(true);
 
                     if (!origin) origin = bone.getAbsolutePosition();

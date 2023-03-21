@@ -14,6 +14,17 @@ import { Vector3, Quaternion } from "@babylonjs/core/Maths/math.vector";
  * for other classes to use.
  */
 
+export class CustomAsset {
+    instantiate(
+        assetRef: AssetRef,
+        scene: Scene,
+        container: AssetContainer,
+        finalAsset: CharacterAsset | EnvironmentAsset | SoundAsset
+    ): void {
+        throw new Error("Method not implemented.");
+    }
+}
+
 export type AssetRef = {
     name: string;
     path: string;
@@ -21,16 +32,12 @@ export type AssetRef = {
     parentOffset?: Vector3;
     parentRotation?: Quaternion;
     rhs?: boolean;
-    physicsImpostorsCb?: (
-        scene: Scene,
-        parent: AbstractMesh,
-        container: AssetContainer
-    ) => Array<PhysicsImpostor>;
     meMask?: Array<string>; // Names of meshes if associated with specific client (ex. to hide inside of head)
     defferedResolve?: (
         value: CharacterAsset | EnvironmentAsset | SoundAsset
     ) => void;
     defferedReject?: (reason?: any) => void;
+    customAsset?: CustomAsset;
 };
 
 const CONCURRENT_LOADS = 3;
@@ -223,10 +230,6 @@ export class AssetManager {
                             }
                         }
 
-                        /*if (assetRef.physicsImpostorsCb) {
-                            assetRef.physicsImpostorsCb(scene, parent, result);
-                        }*/
-
                         if (assetRef.type === "environment") {
                             // Find "colliders" TransformNode, make invisible and author physics impostors
                             const colliders = result.transformNodes.find(
@@ -282,6 +285,15 @@ export class AssetManager {
                                 container: result,
                                 parent,
                             };
+
+                            if (assetRef.customAsset)
+                                assetRef.customAsset.instantiate(
+                                    assetRef,
+                                    scene,
+                                    result,
+                                    environmentAsset
+                                );
+
                             AssetManager.setEnabled(environmentAsset, false);
                             assetRef.defferedResolve!(environmentAsset);
                         } else if (assetRef.type === "character") {
