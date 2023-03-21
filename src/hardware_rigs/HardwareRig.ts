@@ -10,12 +10,20 @@ export abstract class HardwareRig {
     public leftController?: XRInputSource;
     public leftControllerPosition?: Vector3;
     public leftControllerRotation?: Quaternion;
-    private leftRotate = Quaternion.FromEulerAngles(0, -Math.PI / 2, 0);
+    private leftRotate = Quaternion.FromEulerAngles(
+        -Math.PI / 2,
+        -Math.PI / 2,
+        0
+    );
 
     public rightController?: XRInputSource;
     public rightControllerPosition?: Vector3;
     public rightControllerRotation?: Quaternion;
-    private rightRotate = Quaternion.FromEulerAngles(0, Math.PI / 2, 0);
+    private rightRotate = Quaternion.FromEulerAngles(
+        -Math.PI / 2,
+        Math.PI / 2,
+        0
+    );
 
     public aPressed: boolean = false;
     public aTriggered: boolean = false;
