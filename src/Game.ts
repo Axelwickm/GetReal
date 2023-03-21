@@ -22,6 +22,8 @@ import {
     WebXRState,
     Engine,
     AnimationGroup,
+    MeshBuilder,
+    Vector3,
 } from "@babylonjs/core";
 import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
@@ -49,6 +51,7 @@ export class Game {
     private soundTrack: SoundContainer | undefined;
 
     private debugMode: boolean = false;
+    private hideOtherPlayers: boolean = false;
 
     constructor(scene: Scene, xr: WebXRDefaultExperience) {
         this.scene = scene;
@@ -209,6 +212,8 @@ export class Game {
 
                 player.setSoundMode(room.state.room.soundMode);
                 player.setSpatialSoundMode(room.state.room.spatialSoundMode);
+
+                player.setHidden(this.hideOtherPlayers);
             }
         };
 
@@ -366,6 +371,22 @@ export class Game {
         }
     }
 
+    getPlayerIndex() {
+        const allSessionsIds = [...this.room!.state.players.keys()].sort();
+        const mySessionId = this.room!.sessionId;
+        const index = allSessionsIds.indexOf(mySessionId);
+        console.log("my index is", index);
+        if (index === -1) throw new Error("Could not find my session id");
+        return index;
+    }
+
+    setHideOtherPlayers(hide: boolean) {
+        this.hideOtherPlayers = hide;
+        for (const player of this.players.values()) {
+            if (!player.isMe()) player.setHidden(hide);
+        }
+    }
+
     async setEnvironment(environment: string) {
         const oldEnvironmentName = this.environmentName;
         this.environmentName = environment;
@@ -378,12 +399,50 @@ export class Game {
 
         const assetManager = AssetManager.getInstance();
 
-        if (this.environmentName === "Lobbys" && false) {
+        if (this.environmentName === "Lobbys") {
             // No animation since first
+            this.setHideOtherPlayers(true);
+            if (this.environment)
+                AssetManager.setEnabled(this.environment, false);
+
+            this.environment = await assetManager.getEnvironment(
+                this.environmentName
+            );
+
+            const myIndex = this.getPlayerIndex();
+
+            if (this.environment.customAsset!.hasSpawnPoints()) {
+                /*for (let i = 0; i < 15; i++) {
+                    const spawnPoint = this.environment.spawnPoints(i);
+                    if (spawnPoint) {
+                        // Spawn sphere
+                        const sphere = MeshBuilder.CreateSphere(
+                            "sp_" + i,
+                            { diameter: 0.1 },
+                            this.scene
+                        );
+                        sphere.position = spawnPoint.add(
+                            new Vector3(0, 1.5, 0)
+                        );
+                        sphere.material = this.scene.getMaterialByName("red");
+                    }
+                }*/
+                const position =
+                    this.environment.customAsset!.getSpawnPoint(myIndex);
+                this.environment.parent.setAbsolutePosition(position);
+                this.environment.parent.computeWorldMatrix(true);
+                if (this.environment.customAsset)
+                    this.environment.customAsset.transformUpdate();
+
+                // TODO: move Player too
+            }
+
+            AssetManager.setEnabled(this.environment, true);
         } else if (
             this.environmentName === "Warehouse" &&
             oldEnvironmentName === "Lobbys"
         ) {
+            this.setHideOtherPlayers(false);
             const oldEnvironment = this.environment;
             this.environment = await assetManager.getEnvironment(
                 this.environmentName
@@ -406,7 +465,8 @@ export class Game {
                 AssetManager.setEnabled(oldEnvironment!, false);
             });
         } else {
-            // No animation, since this is the first scene
+            this.setHideOtherPlayers(false);
+
             if (this.environment)
                 AssetManager.setEnabled(this.environment, false);
 

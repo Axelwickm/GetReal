@@ -9,11 +9,20 @@ import {
     EnvironmentAsset,
     SoundAsset,
 } from "./AssetManager";
+import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { MirrorTexture } from "@babylonjs/core/Materials/Textures/mirrorTexture";
 import { Plane } from "@babylonjs/core/Maths/math.plane";
 
 class Lobbys extends CustomAsset {
+    scene?: Scene;
+    mirrorTexture?: MirrorTexture;
+    mirror?: AbstractMesh;
+
+    constructor() {
+        super();
+    }
+
     instantiate(
         assetRef: AssetRef,
         scene: Scene,
@@ -21,6 +30,7 @@ class Lobbys extends CustomAsset {
         finalAsset: CharacterAsset | EnvironmentAsset | SoundAsset
     ): void {
         console.log('Custom Asset "Lobbys" instantiate');
+        this.scene = scene;
 
         //Creation of a mirror planes
         const mirror = MeshBuilder.CreatePlane(
@@ -30,15 +40,16 @@ class Lobbys extends CustomAsset {
         );
 
         mirror.rotation = new Vector3(0, (3 * Math.PI) / 2, 0);
-        mirror.position = new Vector3(-1.72847, 1.78803, -0.392012);
+        mirror.position = new Vector3(0, 0, 0);
+        this.mirror = mirror;
 
         //Ensure working with new values for mirror by computing and obtaining its worldMatrix
         mirror.computeWorldMatrix(true);
-        var glass_worldMatrix = mirror.getWorldMatrix();
+        const glass_worldMatrix = mirror.getWorldMatrix();
 
         //Obtain normals for plane and assign one of them as the normal
-        var glass_vertexData = mirror.getVerticesData("normal")!;
-        var glassNormal = new Vector3(
+        const glass_vertexData = mirror.getVerticesData("normal")!;
+        let glassNormal = new Vector3(
             glass_vertexData[0],
             glass_vertexData[1],
             glass_vertexData[2]
@@ -47,13 +58,16 @@ class Lobbys extends CustomAsset {
         glassNormal = Vector3.TransformNormal(glassNormal, glass_worldMatrix);
 
         //Create reflecting surface for mirror surface
-        var reflector = Plane.FromPositionAndNormal(
-            mirror.position,
+        const reflector = Plane.FromPositionAndNormal(
+            mirror.absolutePosition,
             glassNormal.scale(-1)
         );
 
         //Create the mirror material
-        var mirrorMaterial = new StandardMaterial("mirror_custom_asset", scene);
+        const mirrorMaterial = new StandardMaterial(
+            "mirror_custom_asset",
+            scene
+        );
         const mirrorTexture = new MirrorTexture(
             "mirror_texture_custom_asset",
             1024,
@@ -61,6 +75,8 @@ class Lobbys extends CustomAsset {
             true,
             11
         );
+
+        this.mirrorTexture = mirrorTexture;
         mirrorMaterial.reflectionTexture = mirrorTexture;
         mirrorTexture.mirrorPlane = reflector;
         mirrorTexture.renderList = container.meshes.filter(
@@ -75,11 +91,40 @@ class Lobbys extends CustomAsset {
         const mirrorTransformNode = container.transformNodes.find(
             (t) => t.name === "Mirror"
         );
+
         if (mirrorTransformNode) {
             console.log("Found mirror transform node. Setting mirror parent");
             mirror.parent = mirrorTransformNode;
         }
         mirror.setAbsolutePosition(new Vector3(-1.72847, 1.78803, -0.392012));
+
+        this.transformUpdate();
+    }
+
+    transformUpdate() {
+        console.log("Lobbys transform update");
+        // Abolute position not updating in time.
+
+        // And I dont have time to figure out why. Panik.
+        setTimeout(() => {
+            const reflector = Plane.FromPositionAndNormal(
+                this.mirror!.absolutePosition,
+                this.mirror!.getDirection(new Vector3(0, 0, 1))
+            );
+
+            this.mirrorTexture!.mirrorPlane = reflector;
+        }, 1000);
+    }
+
+    hasSpawnPoints(): boolean {
+        return true;
+    }
+
+    getSpawnPoint(index: number): Vector3 {
+        let x = (index % 5) * 4 - 6;
+        let z = Math.floor(index / 5) * 3 - 5;
+        if (index === 13) z += 2.5;
+        return new Vector3(x, 0, z);
     }
 }
 

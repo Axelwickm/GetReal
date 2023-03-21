@@ -23,6 +23,18 @@ export class CustomAsset {
     ): void {
         throw new Error("Method not implemented.");
     }
+
+    transformUpdate(): void {
+        throw new Error("Method not implemented.");
+    }
+
+    hasSpawnPoints(): boolean {
+        return false;
+    }
+
+    getSpawnPoint(index: number): Vector3 {
+        throw new Error("Method not implemented.");
+    }
 }
 
 export type AssetRef = {
@@ -46,6 +58,7 @@ export type EnvironmentAsset = {
     name: string;
     container: AssetContainer;
     parent: AbstractMesh;
+    customAsset?: CustomAsset;
 };
 
 export type CharacterAsset = {
@@ -286,13 +299,17 @@ export class AssetManager {
                                 parent,
                             };
 
-                            if (assetRef.customAsset)
+                            if (assetRef.customAsset) {
                                 assetRef.customAsset.instantiate(
                                     assetRef,
                                     scene,
                                     result,
                                     environmentAsset
                                 );
+
+                                environmentAsset.customAsset =
+                                    assetRef.customAsset;
+                            }
 
                             AssetManager.setEnabled(environmentAsset, false);
                             assetRef.defferedResolve!(environmentAsset);

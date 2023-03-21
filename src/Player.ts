@@ -152,6 +152,11 @@ export class Player {
         this.chromeWorkarondAudio?.remove();
     }
 
+    setHidden(hidden: boolean) {
+        console.log("Player " + this.id + " setHidden " + hidden);
+        this.avatar?.setEnabled(!hidden);
+    }
+
     addOnChangeCallback(cb: () => void) {
         this.onChangeCallbacks.push(cb);
     }
