@@ -91,7 +91,6 @@ export class Interpolator {
 
             return predictedValues;
         } else if (this.mode === "Vector3") {
-            console.log("Predict");
             const predictedValues = new Map<string, Vector3>();
             this.velocities.forEach((velocity, key) => {
                 const lastValue = this.lastValues.get(key) as

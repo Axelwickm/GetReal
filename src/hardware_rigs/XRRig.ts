@@ -91,11 +91,6 @@ export class XRRig extends HardwareRig {
         return true;
     }
 
-    getCameraTransform(): [Vector3, Quaternion] {
-        const camera = this.xr.baseExperience.camera;
-        return [camera.position, camera.rotationQuaternion];
-    }
-
     getBone(name: string): { position: Vector3; rotation: Quaternion } | null {
         const bone = this.boneTransforms.get(name);
         if (bone) {
@@ -129,7 +124,8 @@ export class XRRig extends HardwareRig {
     networkUpdate(playerState: PlayerSchema, room: Room, deltaTime: number) {}
 
     update(playerState: PlayerSchema, room: Room, deltaTime: number) {
-        super.networkUpdate(playerState, room, deltaTime);
+        super.networkUpdate(playerState, room, deltaTime); // ????
+        super.update(playerState, room, deltaTime);
 
         const camera = this.xr.baseExperience.camera;
         this.boneTransforms.set("Head", {
@@ -152,7 +148,7 @@ export class XRRig extends HardwareRig {
         }
 
         //this.collisionMesh.setAbsolutePosition(this.testObject.position);
-        this.collisionMesh.position = camera.position;
+        this.collisionMesh.position = this.boneTransforms.get("Head")!.position;
         this.collisionImpostor.setLinearVelocity(Vector3.Zero());
 
         this.timeSinceLastUpdate += deltaTime;

@@ -3,10 +3,13 @@ import { PlayerSchema } from "../schema/PlayerSchema";
 
 import { Room } from "colyseus.js";
 
-import { WebXRDefaultExperience } from "@babylonjs/core";
+import { WebXRDefaultExperience, WebXRState } from "@babylonjs/core";
 
 // Abstract class
 export abstract class HardwareRig {
+    public globalPosition?: Vector3 = Vector3.Zero();
+    public globalPositionMask?: Vector3 = Vector3.Zero();
+
     public leftController?: XRInputSource;
     public leftControllerPosition?: Vector3;
     public leftControllerRotation?: Quaternion;
@@ -51,7 +54,32 @@ export abstract class HardwareRig {
         throw new Error("Abstract method not implemented");
     }
 
-    update(state: PlayerSchema, room: Room, deltaTime: number) {}
+    update(state: PlayerSchema, room: Room, deltaTime: number) {
+        if (this.isMe()) {
+            if (
+                this.globalPosition &&
+                this.xr.baseExperience.state === WebXRState.IN_XR
+            ) {
+                const inverseMask = new Vector3(
+                    1 - this.globalPositionMask!.x,
+                    1 - this.globalPositionMask!.y,
+                    1 - this.globalPositionMask!.z
+                );
+
+                this.xr.baseExperience.camera.position =
+                    this.xr.baseExperience.camera.position
+                        .multiply(inverseMask)
+                        .add(
+                            this.globalPosition.multiply(
+                                this.globalPositionMask!
+                            )
+                        );
+
+                this.globalPosition = undefined;
+                this.globalPositionMask = undefined;
+            }
+        }
+    }
 
     networkUpdate(state: PlayerSchema, room: Room, deltaTime: number) {
         // This is called from Player, so no need to add own listeners
@@ -70,6 +98,11 @@ export abstract class HardwareRig {
         for (const controller of this.xr.input.controllers) {
             controller.grip?.setEnabled(value);
         }
+    }
+
+    setPosition(position: Vector3, mask: Vector3) {
+        this.globalPosition = position;
+        this.globalPositionMask = mask;
     }
 
     // TODO: controller states (transforms + actions)

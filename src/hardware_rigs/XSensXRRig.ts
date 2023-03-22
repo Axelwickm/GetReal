@@ -49,11 +49,6 @@ export class XSensXRRig extends HardwareRig {
         return true;
     }
 
-    getCameraTransform(): [Vector3, Quaternion] {
-        const camera = this.xr.baseExperience.camera;
-        return [camera.position, camera.rotationQuaternion];
-    }
-
     getBone(name: string): { position: Vector3; rotation: Quaternion } | null {
         const bone = this.boneTransformsTransformed.get(name);
         const bonePositionInterpolated =
@@ -215,8 +210,10 @@ export class XSensXRRig extends HardwareRig {
                 this.origoToXRPosition,
                 position
             );
+            //position.addInPlace(this.globalPosition);
 
             rotation = rotation.multiply(this.headToXRRotation);
+            //rotation.multiplyInPlace(this.globalRotation);
 
             this.boneTransformsTransformed.set(key, [position, rotation]);
 

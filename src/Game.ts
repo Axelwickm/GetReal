@@ -24,6 +24,7 @@ import {
     AnimationGroup,
     MeshBuilder,
     Vector3,
+    Quaternion,
 } from "@babylonjs/core";
 import { AssetManager, EnvironmentAsset } from "./AssetManager";
 
@@ -92,6 +93,13 @@ export class Game {
         xr.baseExperience.onStateChangedObservable.add((state) => {
             if (state === WebXRState.IN_XR) {
                 this.rendering.attachCameras();
+                if (this.me) {
+                    this.xr.baseExperience.camera.position = new Vector3(
+                        0,
+                        this.xr.baseExperience.camera.position.y,
+                        0
+                    );
+                }
             }
         });
 
@@ -434,7 +442,7 @@ export class Game {
                 if (this.environment.customAsset)
                     this.environment.customAsset.transformUpdate();
 
-                // TODO: move Player too
+                this.me!.rig.setPosition(position, new Vector3(1, 0, 1));
             }
 
             AssetManager.setEnabled(this.environment, true);
